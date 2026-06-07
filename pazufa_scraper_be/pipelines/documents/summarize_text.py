@@ -78,7 +78,7 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
                     continue
 
                 # There is no text to summarize => skip
-                if Key.TEXT in cache:
+                if Key.TEXT not in cache:
                     continue
 
                 # If model specific summary exist => link and skip
@@ -87,8 +87,8 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
                     cache.link_model_specific_summary_file(llm_model_name=self.llm_model_name)
                     continue
 
+                self.increment_stats(SummaryCounter.CACHE_MISS)
                 try:
-                    self.increment_stats(SummaryCounter.CACHE_MISS)
                     summary = await self.summarize(dokument=dokument, cache=cache)
 
                 except LLMProviderError as error:
