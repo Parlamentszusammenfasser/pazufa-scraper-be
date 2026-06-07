@@ -1,0 +1,13 @@
+[
+  {
+    "label": "Python: Launch Scrapy Spider",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "module": "scrapy",
+    // "args": ["runspider", "$ZED_FILE"],
+    "args": [
+      "runspider",
+      "${ZED_WORKTREE_ROOT}/pazufa_scraper_be/spiders/gesetz_vorgang.py",
+    ],
+  },
+]
