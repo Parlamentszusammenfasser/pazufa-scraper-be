@@ -19,3 +19,9 @@ ZUSTIMMUNG = "Zustimmung"
 ABGELEHNT = "Abgelehnt"
 ZURUECKGEZOGEN = "Zurückgezogen"
 HAUSHALTSGESETZ = "Haushaltsgesetz"
+
+ABSTRACT_TYPO_CORRECTIONS = {
+    "Ausschusses für Ausschusses für": "Ausschuss für",
+    "für für": "für",
+    "Umwelt und Klimaschutz": "Umwelt- und Klimaschutz",
+}

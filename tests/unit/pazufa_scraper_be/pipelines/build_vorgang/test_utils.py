@@ -6,10 +6,12 @@ import pytest
 from pazufa_corelib.api_client.models import Gremium, Parlament, Station, Stationstyp
 from pazufa_corelib.api_client.types import UNSET
 
+from pazufa_scraper_be.constants import ABSTRACT_TYPO_CORRECTIONS
 from pazufa_scraper_be.pardok.dokument import parse_dokument
 from pazufa_scraper_be.pardok.vorgang import GesetzVorgang
 from pazufa_scraper_be.pipelines.build_vorgang.utils import (
     check_and_create_vote_outcome_station,
+    get_ausschuss_from_beschlussempfehlung_abstract,
     get_document_schlagworte,
     get_vorgang_schlagworte,
     uniqify,
@@ -326,3 +328,53 @@ def test__get_schlagworte__no_mixin_returns_unset(request: pytest.FixtureRequest
     document = parse_dokument(dok_data)
     assert document is not None
     assert get_document_schlagworte(document) is UNSET
+
+
+@pytest.mark.parametrize(
+    ("abstract", "expected"),
+    [
+        (
+            "Beschlussempfehlung des Ausschusses für Kultur, Engagement und Demokratieförderung vom 31. August 2026",
+            "Ausschuss für Kultur, Engagement und Demokratieförderung",
+        ),
+        ("Beschlussempfehlung des Hauptausschusses vom 2. September 2026", "Hauptausschuss"),
+        ("Beschlussempfehlung des Unterausschusses Datenschutz vom 2. September 2026", "Unterausschuss Datenschutz"),
+        ("  beschlussempfehlung des Ausschusses für Bildung vom 1. Januar 2026", "Ausschuss für Bildung"),
+    ],
+)
+def test__get_ausschuss_from_beschlussempfehlung_abstract__extracts_nominative(abstract: str, expected: str) -> None:
+    """Test the Ausschuss is extracted from the Abstract and converted from genitive to nominative."""
+    assert get_ausschuss_from_beschlussempfehlung_abstract(abstract=abstract) == expected
+
+
+@pytest.mark.parametrize(
+    "abstract",
+    [
+        None,
+        "",
+        "Angenommen",
+        "Beschlussempfehlung des Plenums vom 2. September 2026",
+        "Beschlussempfehlung des Ausschusses für Kultur",
+        "Siehe Beschlussempfehlung des Ausschusses für Kultur vom 31. August 2026",
+    ],
+)
+def test__get_ausschuss_from_beschlussempfehlung_abstract__returns_none_if_no_ausschuss_named(abstract: str | None) -> None:
+    """Test None is returned if the Abstract does not match the expected shape or names no Ausschuss."""
+    assert get_ausschuss_from_beschlussempfehlung_abstract(abstract=abstract) is None
+
+
+def test__get_ausschuss_from_beschlussempfehlung_abstract__corrects_known_typos(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test typos from ABSTRACT_TYPO_CORRECTIONS are corrected before the Ausschuss is extracted."""
+    abstract = "Beschlussempfehlung des Auschusses für Kultur vom 31. August 2026"
+    assert get_ausschuss_from_beschlussempfehlung_abstract(abstract=abstract) is None
+
+    monkeypatch.setitem(ABSTRACT_TYPO_CORRECTIONS, "Auschusses", "Ausschusses")
+
+    assert get_ausschuss_from_beschlussempfehlung_abstract(abstract=abstract) == "Ausschuss für Kultur"
+
+
+def test__get_ausschuss_from_beschlussempfehlung_abstract__typo_correction_does_not_touch_other_abstracts(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test abstracts without a known typo are unchanged."""
+    monkeypatch.setitem(ABSTRACT_TYPO_CORRECTIONS, "Auschusses", "Ausschusses")
+
+    assert get_ausschuss_from_beschlussempfehlung_abstract(abstract="Beschlussempfehlung des Hauptausschusses vom 2. September 2026") == "Hauptausschuss"

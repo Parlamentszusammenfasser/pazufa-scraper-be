@@ -21,6 +21,7 @@ from pazufa_scraper_be.pipelines.build_vorgang.rules import (
     ForwardMergeRule,
     TransformRule,
     apply_rules,
+    change_urheber_to_abstract_ausschuss_transform_fn,
     get_change_abstract_transform_fn,
     get_change_urheber_transform_fn,
 )
@@ -51,6 +52,11 @@ RULES = [
             and current.pardok.abstract is not None
             and bool(re.search(rf"\b{VERTAGT}\b", current.pardok.abstract))
         ),
+    ),
+    TransformRule(
+        name="Change Autor/Urheber of Beschlussempfehlung to the Ausschuss named in its Abstract",
+        when=lambda current: isinstance(current.pardok, DrsDokument) and current.pardok.typ == DokTyp.BeschlEmpf,
+        transform_function=change_urheber_to_abstract_ausschuss_transform_fn,
     ),
     TransformRule(
         name="Change Autor/Urheber of Beschlussempfehlung '19/2984' to 'Ausschuss für Bildung, Jugend und Familie'",

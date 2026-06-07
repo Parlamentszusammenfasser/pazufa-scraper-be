@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from pazufa_corelib.api_client.models import Autor
 
 from pazufa_scraper_be.pardok import DrsDokument
-from pazufa_scraper_be.pipelines.build_vorgang.utils import DokumentContainer
+from pazufa_scraper_be.pipelines.build_vorgang.utils import DokumentContainer, get_ausschuss_from_beschlussempfehlung_abstract
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -28,6 +28,18 @@ def get_change_urheber_transform_fn(urheber: str) -> Callable[[DokumentContainer
             current.pazufa[0].autoren = [Autor(organisation=urheber)]
 
     return _change_urheber_transform_fn
+
+
+def change_urheber_to_abstract_ausschuss_transform_fn(current: DokumentContainer) -> None:
+    """Change Autor/Urheber of a Beschlussempfehlung to the Ausschuss named in its Abstract. Does nothing if the Abstract names none."""
+    if not isinstance(current.pardok, DrsDokument):
+        return
+
+    ausschuss = get_ausschuss_from_beschlussempfehlung_abstract(abstract=current.pardok.abstract)
+    if ausschuss is None:
+        return
+
+    get_change_urheber_transform_fn(urheber=ausschuss)(current)
 
 
 def get_change_abstract_transform_fn(abstract: str) -> Callable[[DokumentContainer], None]:
