@@ -60,7 +60,8 @@ ignore = [
 ]
 "tests/*" = [
   "SLF001",  # allow private member access
-  "DTZ001",  # datetime without tz - intentional for testing
+  "DTZ001",  # datetime without tzinfo - intentional for testing
+  "DTZ005",  # datetime.now without tz - intentional for testing
   "PLR2004",  # allow magic numbers
   "FBT001",  # allow boolean positional argument
 ]
