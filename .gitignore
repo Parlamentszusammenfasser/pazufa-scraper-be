@@ -226,3 +226,4 @@ pyrightconfig.json
 notebooks
 .cache
 .errors
+.claude
