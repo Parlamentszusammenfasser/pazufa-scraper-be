@@ -26,13 +26,13 @@ async def _reset_cache_if_file_got_modified(document_cache: DocumentCache, dokum
     if not download_time:
         return False
 
-    if not _is_recheck_due(document_cache.last_remote_check(), download_time):
+    if not _is_recheck_due(document_cache.get_last_checked(), download_time):
         return False
 
     last_modified = await _fetch_last_modified(dokument_url, engine)
-    document_cache.checked_remote()
+    document_cache.update_last_checked()
 
-    if last_modified is None or document_cache.last_modified_read() == last_modified:
+    if last_modified is None or document_cache.get_last_modified() == last_modified:
         return False
 
     document_cache.reset()
@@ -109,12 +109,10 @@ class DownloadAndCacheDocuments(CacheDirPipeline, StatsPipeline):
                     continue
 
                 if last_modified_header_as_byte := response.headers.get("Last-Modified"):
-                    document_cache.last_modified_write(
-                        datetime.strptime(last_modified_header_as_byte.decode("utf-8"), LAST_MODIFIED_TIME_FORMAT).astimezone(UTC)
-                    )
+                    document_cache.set_last_modified(datetime.strptime(last_modified_header_as_byte.decode("utf-8"), LAST_MODIFIED_TIME_FORMAT).astimezone(UTC))
 
                 self.increment_stats(DokumentCounter.DOWNLOAD_DONE)
-                document_cache.url_write(response.url)
+                document_cache.write_url(response.url)
                 document_cache.download_time_write(download_time)
                 document_cache.document_write(response.body)
 

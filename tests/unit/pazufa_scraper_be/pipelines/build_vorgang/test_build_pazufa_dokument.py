@@ -307,7 +307,7 @@ def test_clean_urheber(input_text: str, expected_text: str) -> None:
 def test_get_zp_modifiziert_with_last_modified(tmp_path: Path, plpr_data: dict[str, Any], last_modified: datetime, expected_date: datetime) -> None:
     """Verify that if LAST_MODIFIED.txt is present, it's used and normalized to midnight UTC."""
     document_cache = DocumentCache(base_dir=tmp_path, name="document-folder")
-    document_cache.last_modified_write(last_modified)
+    document_cache.set_last_modified(last_modified)
 
     dokument = PlPrDokument.model_validate(plpr_data)
 
@@ -516,7 +516,7 @@ def test_build_pazufa_dokument_happy_path(tmp_path: Path, plpr_data: dict[str, A
     document_cache.document_write(document_content)
     document_cache.text_write(text_content)
     document_cache.summary_write(summary_content)
-    document_cache.last_modified_write(datetime(2024, 5, 10, 12, 34, 56, tzinfo=UTC))
+    document_cache.set_last_modified(datetime(2024, 5, 10, 12, 34, 56, tzinfo=UTC))
 
     dokument = PlPrDokument.model_validate(plpr_data)
 

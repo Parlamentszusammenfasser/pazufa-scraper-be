@@ -46,7 +46,7 @@ class SummarizeExtractedPDFText(CacheDirPipeline, LLMPipeline, StatsPipeline):
                 self.increment_stats(LLMCounter.summarize_art(dokument.art_l.lower()))
                 return await self.llm_connector.summarize_dokument(titel=titel, text=relevant_section)
 
-            document_cache.summary_ignore_write("Ignoring because no relevant section was found.")
+            document_cache.set_summary_ignore("Ignoring because no relevant section was found.")
             self.increment_stats(LLMCounter.EXTRACT_RELEVANT_SECTION_FAILED)
 
         elif isinstance(dokument, GVBlDokument):
@@ -73,7 +73,7 @@ class SummarizeExtractedPDFText(CacheDirPipeline, LLMPipeline, StatsPipeline):
             for dokument_url in dokument.all_urls:
                 document_cache = self.get_document_cache(document=dokument, document_url=dokument_url)
 
-                if document_cache.summary_ignore_exists():
+                if document_cache.exist_summary_ignore():
                     self.increment_stats(SummaryCounter.IGNORE)
                     continue
 
@@ -82,7 +82,7 @@ class SummarizeExtractedPDFText(CacheDirPipeline, LLMPipeline, StatsPipeline):
                     continue
 
                 # If model specific summary exist => link and skip
-                if self.llm_model_name is not None and document_cache.model_specific_summary_exists(self.llm_model_name):
+                if self.llm_model_name is not None and document_cache.exist_model_specific_summary(self.llm_model_name):
                     self.increment_stats(SummaryCounter.CACHE_HIT)
                     document_cache.link_model_specific_summary_file(llm_model_name=self.llm_model_name)
                     continue
@@ -96,7 +96,7 @@ class SummarizeExtractedPDFText(CacheDirPipeline, LLMPipeline, StatsPipeline):
                     msg = f"[{vorgang.id} - {dokument.id}]: LLM summarization failed due to provider problem."
                     logger.warning(msg)
 
-                    document_cache.summary_ignore_write(repr(error))
+                    document_cache.set_summary_ignore(repr(error))
                     continue
 
                 if summary is None:
@@ -111,7 +111,7 @@ class SummarizeExtractedPDFText(CacheDirPipeline, LLMPipeline, StatsPipeline):
 
                 else:
                     self.increment_stats(LLMCounter.SUMMARIZE_DONE)
-                    document_cache.model_specific_summary_write(llm_model_name=self.llm_model_name, summary=summary)
+                    document_cache.set_model_specific_summary(llm_model_name=self.llm_model_name, summary=summary)
                     document_cache.link_model_specific_summary_file(llm_model_name=self.llm_model_name)
 
         return vorgang
