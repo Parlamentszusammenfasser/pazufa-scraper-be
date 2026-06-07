@@ -75,12 +75,6 @@ class DownloadAndCacheDocuments(CacheDirPipeline, StatsPipeline):
             for dokument_url in dokument.all_urls:
                 document_cache = self.get_document_cache(document=dokument, document_url=dokument_url)
 
-                # TODO
-                # if dokument_cache_dir is None:
-                #     msg = f"[{vorgang.id} - {dokument.id}]: Did not get cache dir for additional URL: {dokument_url}"
-                #     logger.warning(msg)
-                #     continue
-
                 if document_cache.document_exists():
                     if await _reset_cache_if_file_got_modified(document_cache, dokument_url, engine=self.crawler.engine):
                         self.increment_stats(DokumentCounter.CACHE_RESET)
