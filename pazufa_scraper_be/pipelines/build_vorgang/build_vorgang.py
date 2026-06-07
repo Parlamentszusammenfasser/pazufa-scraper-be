@@ -123,9 +123,10 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
         dok_containers = []
         for pardok in vorgang.dokumente:
             pazufa = []
-            for url in pardok.all_urls:
-                dokument_cache_dir = self.get_dokument_cache_dir(dokument=pardok, url=url)
-                pazufa_dokument = build_pazufa_dokument(dokument=pardok, dokument_cache_dir=dokument_cache_dir, url=url)
+            for dokument_url in pardok.all_urls:
+                document_cache = self.get_document_cache(document=pardok, document_url=dokument_url)
+
+                pazufa_dokument = build_pazufa_dokument(dokument=pardok, document_cache=document_cache, url=dokument_url)
 
                 if pazufa_dokument:
                     pazufa.append(pazufa_dokument)
