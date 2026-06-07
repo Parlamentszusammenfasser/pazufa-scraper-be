@@ -61,7 +61,7 @@ class CreateShortTitel(CachePipeline, LLMPipeline, StatsPipeline):
                     msg = f"[{vorgang.id} - {dokument.id}]: LLM creation of short title failed due to quota exceeded."
                     logger.warning(msg)
 
-                    cache.set_text(key=Key.SHORT_TITEL_IGNORE, value=repr(error), ttl=timedelta(hours=24))
+                    cache.set_text(key=Key.SHORT_TITEL_IGNORE, value=repr(error), ttl=timedelta(hours=6))
 
                 except LLMRateLimitError as error:
                     self.increment_stats(LLMCounter.SHORT_TITEL_FAILED_RATE_LIMIT)

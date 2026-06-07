@@ -110,7 +110,7 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
                     msg = f"[{vorgang.id} - {dokument.id}]: LLM summarization failed due to quota exceeded."
                     logger.warning(msg)
 
-                    cache.set_text(key=Key.SUMMARY_IGNORE, value=repr(error), ttl=timedelta(hours=24))
+                    cache.set_text(key=Key.SUMMARY_IGNORE, value=repr(error), ttl=timedelta(hours=6))
                     continue
 
                 except LLMRateLimitError as error:
