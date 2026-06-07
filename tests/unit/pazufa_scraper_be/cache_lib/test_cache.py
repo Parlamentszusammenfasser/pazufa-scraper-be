@@ -424,7 +424,7 @@ class TestCacheDunderMethods:
     def test_setitem_unsupported_type_raises(self: Self, cache: Cache, unsupported_value: object) -> None:
         """Verify __setitem__ raises TypeError for unsupported type."""
         with pytest.raises(TypeError, match="Unsupported value type"):
-            cache["test_key"] = unsupported_value
+            cache["test_key"] = unsupported_value  # ty: ignore[invalid-assignment]
 
     def test_contains_returns_true(self: Self, cache: Cache) -> None:
         """Verify __contains__ returns True when entry exists."""

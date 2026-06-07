@@ -3,9 +3,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Self
 
-from ..backends.backend import Backend
-from ..metadata import Metadata
-from ..types import Key, Value
+from ..backends.backend import Backend  # noqa: TID252
+from ..metadata import Metadata  # noqa: TID252
+from ..types import Key, Value  # noqa: TID252
 
 
 class FileSystemBackend(Backend):

@@ -46,9 +46,7 @@ class TestFileSystemBackendPaths:
         "value_type",
         list(Value),
     )
-    def test_file_path_for_value_type(
-        self: Self, backend: FileSystemBackend, tmp_path: Path, value_type: Value
-    ) -> None:
+    def test_file_path_for_value_type(self: Self, backend: FileSystemBackend, tmp_path: Path, value_type: Value) -> None:
         """Verify file path has correct extension per value type."""
         file_path = backend.get_file_path(Key("test_key"), value_type)
         assert file_path.parent == tmp_path
@@ -102,7 +100,7 @@ class TestDictValues:
         backend.set_dict(key=Key("dict_key"), value=test_value)
         assert backend.get_dict(key=Key("dict_key")) == test_value
 
-    def test_dict_json_format(self: Self, backend: FileSystemBackend, tmp_path: Path) -> None:
+    def test_dict_json_format(self: Self, backend: FileSystemBackend) -> None:
         """Verify dict is stored as formatted JSON."""
         backend.set_dict(key=Key("json_key"), value={"formatted": True})
         file_path = backend.get_file_path(Key("json_key"), Value.DICT)

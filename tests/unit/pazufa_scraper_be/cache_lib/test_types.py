@@ -1,7 +1,9 @@
+import json
 from pathlib import Path
 from typing import Self
 
 import pytest
+from pydantic import BaseModel
 
 from pazufa_scraper_be.cache_lib.types import Key
 
@@ -70,7 +72,6 @@ class TestKeyPydanticSchema:
     )
     def test_pydantic_roundtrip_to_file(self: Self, key_type: type[Key], tmp_path: Path) -> None:
         """Verify Key can be serialized to file and deserialized back."""
-        from pydantic import BaseModel
 
         class TestModel(BaseModel):
             key: Key
@@ -88,7 +89,5 @@ class TestKeyPydanticSchema:
     )
     def test_str_enum_is_json_serializable(self: Self, key_type: type[Key]) -> None:
         """Verify Key serializes to JSON string correctly."""
-        import json
-
         key = key_type("json_test")
         assert json.dumps(key) == '"json_test"'

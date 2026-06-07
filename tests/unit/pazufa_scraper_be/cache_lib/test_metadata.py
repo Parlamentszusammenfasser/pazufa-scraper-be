@@ -1,5 +1,5 @@
 from datetime import UTC, datetime, timedelta
-from typing import Self, cast
+from typing import Self
 
 import pytest
 from pydantic import ValidationError
