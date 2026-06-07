@@ -60,7 +60,8 @@ ignore = [
   "F401",  # Unused imports in __init__ files can make sense
 ]
 "tests/*" = [
-  "SLF001"  # allow private member access
+  "SLF001",  # allow private member access
+  "PLR2004"  # allow magic numbers
 ]
 
 [tool.ruff.lint.pydocstyle]
