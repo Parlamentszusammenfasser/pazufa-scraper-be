@@ -21,32 +21,39 @@ logger = logging.getLogger(__name__)
 LAST_MODIFIED_TIME_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
 
 
-# TODO: refactor
 async def _reset_cache_if_file_got_modified(document_cache: DocumentCache, dokument_url: HttpUrl, engine: ExecutionEngine) -> bool:
-    download_time_from_cache = document_cache.download_time_read()
-    last_check_time_from_cache = document_cache.last_remote_check()
-
-    if not download_time_from_cache:
+    download_time = document_cache.download_time_read()
+    if not download_time:
         return False
 
-    check_due = last_check_time_from_cache is None or (datetime.now(UTC) - last_check_time_from_cache) >= timedelta(days=DOCUMENT_CHECK_MODIFIED_EVERY_DAYS)
-    download_grace_period_done = (datetime.now(UTC) - download_time_from_cache) >= timedelta(days=DOCUMENT_CHECK_MODIFIED_EVERY_DAYS)
-
-    if not download_grace_period_done or not check_due:
+    if not _is_recheck_due(document_cache.last_remote_check(), download_time):
         return False
 
+    last_modified = await _fetch_last_modified(dokument_url, engine)
+    document_cache.checked_remote()
+
+    if last_modified is None or document_cache.last_modified_read() == last_modified:
+        return False
+
+    document_cache.reset()
+    return True
+
+
+def _is_recheck_due(last_check_time: datetime | None, download_time: datetime) -> bool:
+    interval = timedelta(days=DOCUMENT_CHECK_MODIFIED_EVERY_DAYS)
+    check_due = last_check_time is None or (datetime.now(UTC) - last_check_time) >= interval
+    grace_period_done = (datetime.now(UTC) - download_time) >= interval
+    return check_due and grace_period_done
+
+
+async def _fetch_last_modified(dokument_url: HttpUrl, engine: ExecutionEngine) -> datetime | None:
     request = Request(dokument_url.encoded_string(), method="HEAD", callback=NO_CALLBACK)
     response = await engine.download_async(request)
-    if last_modified_header_as_byte := response.headers.get("Last-Modified"):
-        last_modified_time_from_header = datetime.strptime(last_modified_header_as_byte.decode("utf-8"), LAST_MODIFIED_TIME_FORMAT).astimezone(tz=UTC)
+    header = response.headers.get("Last-Modified")
+    if not header:
+        return None
 
-        if document_cache.last_modified_read() != last_modified_time_from_header:
-            document_cache.reset()
-            document_cache.checked_remote()
-            return True
-
-    document_cache.checked_remote()
-    return False
+    return datetime.strptime(header.decode("utf-8"), LAST_MODIFIED_TIME_FORMAT).astimezone(tz=UTC)
 
 
 class DownloadAndCacheDocuments(CacheDirPipeline, StatsPipeline):
