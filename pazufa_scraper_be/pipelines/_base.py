@@ -25,6 +25,7 @@ class BasePipeline(ABC):
     def __init__(self: Self, crawler: Crawler) -> None:
         self.crawler = crawler
         self.wahlperiode = self.crawler.settings.getint("WAHLPERIODE")
+        self.debug = self.crawler.settings.getbool("DEBUG")
 
         if self.wahlperiode is None:
             msg = "Missing WAHLPERIODE setting."

@@ -50,6 +50,14 @@ def test__base_pipeline_from_crawler_initializes_pipeline() -> None:
     assert pipeline.initialized is True
 
 
+@pytest.mark.parametrize(("settings", "expected"), [({}, False), ({"DEBUG": False}, False), ({"DEBUG": True}, True), ({"DEBUG": "True"}, True)])
+def test__base_pipeline_reads_debug_setting(settings: dict, expected: bool) -> None:
+    """Debug mode is off by default and read as boolean from the DEBUG setting."""
+    pipeline = ConcreteBasePipeline(make_crawler({"WAHLPERIODE": WAHLPERIODE, **settings}))
+
+    assert pipeline.debug is expected
+
+
 def test__base_pipeline_uses_scrapy_default_for_missing_wahlperiode() -> None:
     """Construction uses Scrapy's zero default when WAHLPERIODE is missing."""
     pipeline = ConcreteBasePipeline(make_crawler())
