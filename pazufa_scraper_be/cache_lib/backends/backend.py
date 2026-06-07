@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
 from typing import Self
 
-from ..metadata import Metadata
-from ..types import Key, Value
+from pazufa_scraper_be.cache_lib.metadata import Metadata
+from pazufa_scraper_be.cache_lib.types import Key, Value
 
 
 class Backend(ABC):
