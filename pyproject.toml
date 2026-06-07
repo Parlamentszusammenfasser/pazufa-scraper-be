@@ -65,6 +65,8 @@ ignore = [
   "DTZ005",  # datetime.now without tz - intentional for testing
   "PLR2004",  # allow magic numbers
   "FBT001",  # allow boolean positional argument
+  "PLR0913",  # pytest fixtures are injected as arguments
+  "PLR0917",  # pytest fixtures are injected as positional arguments
 ]
 
 [tool.ruff.lint.pydocstyle]
