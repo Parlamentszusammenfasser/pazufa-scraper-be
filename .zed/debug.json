@@ -1,0 +1,16 @@
+[
+  {
+    "label": "Python: Launch Scrapy Spider",
+    "adapter": "Debugpy",
+    "request": "launch",
+    "env": {
+      "PAZUFA_API_TOKEN": "pazufa-ABRAKADABRAHEXEN-DRACHENSCHUPPENHAARFAERBEMITTELVERORDNUNGSBLATTFASERSTRUKTURWASSERMINDESTAUFNAHMESTEMPELGESETZ1A6a3671b9",
+    },
+    "module": "scrapy",
+    // "args": ["runspider", "$ZED_FILE"],
+    "args": [
+      "runspider",
+      "${ZED_WORKTREE_ROOT}/pazufa_scraper_be/spiders/gesetz_vorgang.py",
+    ],
+  },
+]

@@ -227,3 +227,4 @@ notebooks
 .cache
 .errors
 .debug
+.claude
