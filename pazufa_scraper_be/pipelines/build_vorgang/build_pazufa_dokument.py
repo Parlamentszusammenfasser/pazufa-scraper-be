@@ -164,8 +164,7 @@ def _get_autoren(dokument: AnyGesetzDokument) -> list[Autor]:
 
 def _get_zp_modifiziert(dokument: AnyGesetzDokument, cache: Cache) -> datetime:
     if Key.LAST_MODIFIED in cache:
-        dt = cache.get_timestamp(Key.LAST_MODIFIED)
-        return datetime(dt.year, dt.month, dt.day, tzinfo=UTC)
+        return cache.get_timestamp(Key.LAST_MODIFIED)
 
     if dokument.dat is not None:
         return dokument.dat

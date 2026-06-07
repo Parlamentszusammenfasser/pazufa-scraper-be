@@ -106,13 +106,16 @@ def get_station_typ_and_gremium(dok_container: DokumentContainer) -> tuple[Stati
     return typ, (gremium, gremium_federf)
 
 
-def get_station_zeitpunkte(dok_container: DokumentContainer) -> tuple[datetime, datetime]:
+def get_station_zeitpunkte(dok_container: DokumentContainer) -> tuple[datetime, datetime | Unset]:
     """Extract timestamps relevant for station."""
     zp_start = dok_container.pazufa[0].zp_referenz
     zp_modifiziert = dok_container.pazufa[-1].zp_modifiziert
 
     if isinstance(dok_container.pardok, GVBlDokument):
         zp_start = dok_container.pardok.vk_dat
+
+    if zp_start > zp_modifiziert:
+        zp_modifiziert = UNSET
 
     return zp_start, zp_modifiziert
 
