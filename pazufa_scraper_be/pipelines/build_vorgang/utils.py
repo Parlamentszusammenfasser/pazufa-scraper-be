@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass
-from datetime import timedelta
 from typing import TYPE_CHECKING
 
 from pazufa_corelib.api_client.models import Doktyp, Gremium, Parlament, Station, Stationstyp
@@ -136,7 +135,8 @@ def check_and_create_vote_outcome_station(station: Station, dok_abstract: str) -
 
         if typ:
             new_station = Station.from_dict(station.to_dict() | {"typ": typ, "titel": titel})
-            new_station.zp_start = station.zp_start + timedelta(minutes=30)
+            station.meta_tiebreaker = 0
+            new_station.meta_tiebreaker = 1
 
             return new_station
 
