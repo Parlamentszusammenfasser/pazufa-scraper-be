@@ -6,6 +6,7 @@ from pazufa_scraper_be.cache_lib import DocumentCache as BaseDocumentCache
 from pazufa_scraper_be.cache_lib import DocumentKey, Value
 from pazufa_scraper_be.cache_lib import Key as BaseKey
 from pazufa_scraper_be.cache_lib.backends import FileSystemBackend
+from pazufa_scraper_be.constants import DOK_CACHE_HISTORY_SUB_DIR_PATH
 
 
 class Key(BaseKey):
