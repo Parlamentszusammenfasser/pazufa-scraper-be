@@ -71,7 +71,7 @@ def test__stats_pipeline_increments_enum_and_string_counters() -> None:
     crawler.stats = stats
     pipeline = StatsPipeline(crawler)
 
-    with patch.object(StatsCollector, "inc_value") as increment:
+    with patch.object(stats, "inc_value") as increment:
         pipeline.increment_stats(DokumentCounter.CACHE_HIT)
         pipeline.increment_stats("custom/key")
 
