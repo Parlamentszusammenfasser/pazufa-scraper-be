@@ -149,7 +149,11 @@ def get_station_zeitpunkte(dok_container: DokumentContainer) -> tuple[datetime, 
     if isinstance(dok_container.pardok, GVBlDokument):
         zp_start = dok_container.pardok.vk_dat
 
-    if zp_start > zp_modifiziert:
+    if isinstance(zp_start, Unset):
+        msg = f"[{dok_container.pardok.vorgang.id} - {dok_container.pardok.id}]: Could not determine zp_start for station."
+        raise TypeError(msg)
+
+    if isinstance(zp_modifiziert, Unset) or zp_start > zp_modifiziert:
         zp_modifiziert = UNSET
 
     return zp_start, zp_modifiziert
