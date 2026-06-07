@@ -10,6 +10,8 @@ from pazufa_scraper_be.constants import DOK_CACHE_HISTORY_SUB_DIR_PATH
 
 
 class Key(BaseKey):
+    """Keys for DocumentCache."""
+
     URL = "URL"
     LAST_MODIFIED = "LAST_MODIFIED"
     LAST_CHECKED = "LAST_CHECKED"
@@ -25,36 +27,38 @@ class DocumentCache(BaseDocumentCache[FileSystemBackend]):
         super().__init__(backend=FileSystemBackend(base_dir=Path(base_dir) / name))
 
     def checked_remote(self: Self) -> None:
+        """Signal that remote got just checked."""
         return self.write_timestamp(key=Key.LAST_CHECKED, value=datetime.now(UTC))
 
     def last_remote_check(self: Self) -> datetime | None:
+        """Get datetime when last modified happened or None if non."""
         if self.has_entry(key=Key.LAST_CHECKED):
             return self.read_timestamp(key=Key.LAST_CHECKED)
 
         return None
 
-    def url_read(self: Self) -> str:
-        return self.read_text(key=Key.URL)
-
     def url_write(self: Self, value: str) -> None:
+        """Write URL value."""
         return self.write_text(key=Key.URL, value=value)
 
     def last_modified_exists(self: Self) -> bool:
+        """Check if last modified exists."""
         return self.has_entry(key=Key.LAST_MODIFIED)
 
     def last_modified_read(self: Self) -> datetime:
+        """Read last modified value."""
         return self.read_timestamp(key=Key.LAST_MODIFIED)
 
     def last_modified_write(self: Self, value: datetime) -> None:
+        """Write last modified value."""
         return self.write_timestamp(key=Key.LAST_MODIFIED, value=value)
 
     def summary_ignore_exists(self: Self) -> bool:
+        """Check if summary ignore exists."""
         return self.has_entry(key=Key.SUMMARY_IGNORE)
 
-    def summary_ignore_read(self: Self) -> str:
-        return self.read_text(key=Key.SUMMARY_IGNORE)
-
     def summary_ignore_write(self: Self, value: str) -> None:
+        """Write summary ignore value."""
         return self.write_text(key=Key.SUMMARY_IGNORE, value=value)
 
     def _get_model_specific_summary_file_path(self: Self, llm_model_name: str) -> Path:
@@ -62,9 +66,11 @@ class DocumentCache(BaseDocumentCache[FileSystemBackend]):
         return self.backend.directory / str(summary_file.stem + "_" + llm_model_name.replace("/", "__") + summary_file.suffix)
 
     def model_specific_summary_exists(self: Self, llm_model_name: str) -> bool:
+        """Check if model specific summary exists."""
         return self._get_model_specific_summary_file_path(llm_model_name=llm_model_name).exists()
 
     def model_specific_summary_write(self: Self, llm_model_name: str, summary: str) -> None:
+        """Write to model specific summary."""
         self._get_model_specific_summary_file_path(llm_model_name=llm_model_name).write_text(summary)
 
     def link_model_specific_summary_file(self: Self, llm_model_name: str) -> None:
@@ -79,6 +85,7 @@ class DocumentCache(BaseDocumentCache[FileSystemBackend]):
         self.backend.write_metadata(key=key, value_type=Value.TEXT, ttl=None)
 
     def reset(self: Self) -> None:
+        """Reset DocumentCache."""
         history_dir = self.backend.directory / DOK_CACHE_HISTORY_SUB_DIR_PATH
         history_dir.mkdir(parents=True, exist_ok=True)
 
