@@ -48,21 +48,22 @@ class StatsPipeline(BasePipeline):
         self.stats = self.crawler.stats
 
     def increment_stats(self: Self, counter: StatsCounter | str) -> None:
-        if self.stats is not None:
-            key = counter.value if isinstance(counter, StatsCounter) else counter
-            self.stats.inc_value(key)
+        key = counter.value if isinstance(counter, StatsCounter) else counter
+        self.stats.inc_value(key)
 
 
 class CacheDirPipeline(BasePipeline):
     def init(self: Self) -> None:
         super().init()
 
-        self._cache_dir = Path(self.crawler.settings.get("CACHE_DIR")) / str(self.wahlperiode)
-        self._dok_cache_dir = Path(self.crawler.settings.get("CACHE_DIR")) / str(self.wahlperiode) / DOK_CACHE_SUB_DIR_PATH
+        cache_dir = self.crawler.settings.get("CACHE_DIR")
 
-        if self._cache_dir is None:
+        if not isinstance(cache_dir, (str, Path)):
             msg = "Missing CACHE_DIR setting."
-            raise ValueError(msg)
+            raise TypeError(msg)
+
+        self._cache_dir = Path(cache_dir) / str(self.wahlperiode)
+        self._dok_cache_dir = self._cache_dir / DOK_CACHE_SUB_DIR_PATH
 
     def get_document_cache(self: Self, document: AnyGesetzDokument, document_url: HttpUrl) -> DocumentCache:
 

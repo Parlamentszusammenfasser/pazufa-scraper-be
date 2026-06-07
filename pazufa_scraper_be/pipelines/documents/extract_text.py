@@ -30,7 +30,7 @@ def _get_xberg_config(*, ocr: bool) -> ExtractionConfig:
 
 
 async def _extract_text(document_bytes: bytes, *, ocr: bool) -> str:
-    extract_input = ExtractInput(kind=ExtractInputKind.BYTES, bytes=document_bytes)
+    extract_input = ExtractInput(kind=ExtractInputKind.BYTES, bytes=document_bytes)  # ty: ignore[invalid-argument-type] NOTE: This is actually fine and should be a temporary bug
     extraction_result = await xberg.extract(
         input=extract_input,
         config=_get_xberg_config(ocr=ocr),
