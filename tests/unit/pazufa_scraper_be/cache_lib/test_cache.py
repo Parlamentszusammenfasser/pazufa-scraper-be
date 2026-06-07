@@ -79,6 +79,8 @@ class TestHelperCheckValue:
 
 
 class TestHelperCheckExpiry:
+    """Tests for _check_expiry helper function."""
+
     def test_not_expired_does_not_raise(self: Self) -> None:
         """Verify non-expired metadata doesn't raise."""
         metadata = MagicMock()
@@ -139,6 +141,7 @@ class TestCacheDispatchesToBackend:
         return Cache(backend=backend)
 
     def test_get_text(self: Self, cache: Cache) -> None:
+        """Verify get_text dispatches to backend.get_text."""
         value_type = Value.TEXT
         cache.backend.get_metadata.return_value.value_type = value_type
 
@@ -146,6 +149,7 @@ class TestCacheDispatchesToBackend:
         cache.backend.get_text.assert_called_once_with(key=Key("test_key"))
 
     def test_get_bytes(self: Self, cache: Cache) -> None:
+        """Verify get_bytes dispatches to backend.get_bytes."""
         value_type = Value.BYTES
         cache.backend.get_metadata.return_value.value_type = value_type
 
@@ -153,6 +157,7 @@ class TestCacheDispatchesToBackend:
         cache.backend.get_bytes.assert_called_once_with(key=Key("test_key"))
 
     def test_get_timestamp(self: Self, cache: Cache) -> None:
+        """Verify get_timestamp dispatches to backend.get_timestamp."""
         value_type = Value.TIMESTAMP
         cache.backend.get_metadata.return_value.value_type = value_type
 
@@ -160,6 +165,7 @@ class TestCacheDispatchesToBackend:
         cache.backend.get_timestamp.assert_called_once_with(key=Key("test_key"))
 
     def test_get_dict(self: Self, cache: Cache) -> None:
+        """Verify get_dict dispatches to backend.get_dict."""
         value_type = Value.DICT
         cache.backend.get_metadata.return_value.value_type = value_type
 
@@ -167,6 +173,7 @@ class TestCacheDispatchesToBackend:
         cache.backend.get_dict.assert_called_once_with(key=Key("test_key"))
 
     def test_get_metadata(self: Self, cache: Cache) -> None:
+        """Verify get_metadata dispatches to backend.get_metadata."""
         cache.backend.get_metadata.return_value.value_type = Value.DICT
         cache.backend.get_metadata.return_value.key = Key("test_key")
 
@@ -178,6 +185,7 @@ class TestCacheDispatchesToBackend:
         [None, 5, timedelta(hours=5)],
     )
     def test_set_text(self: Self, cache: Cache, ttl: timedelta | int | None) -> None:
+        """Verify set_text dispatches to backend with correct arguments."""
         key = Key("test_key")
         value = "test_value"
         value_type = Value.TEXT
@@ -192,6 +200,7 @@ class TestCacheDispatchesToBackend:
         [None, 5, timedelta(hours=5)],
     )
     def test_set_bytes(self: Self, cache: Cache, ttl: timedelta | int | None) -> None:
+        """Verify set_bytes dispatches to backend with correct arguments."""
         key = Key("test_key")
         value = b"test_value"
         value_type = Value.BYTES
@@ -206,6 +215,7 @@ class TestCacheDispatchesToBackend:
         [None, 5, timedelta(hours=5)],
     )
     def test_set_dict(self: Self, cache: Cache, ttl: timedelta | int | None) -> None:
+        """Verify set_dict dispatches to backend with correct arguments."""
         key = Key("test_key")
         value = {}
         value_type = Value.DICT
@@ -220,6 +230,7 @@ class TestCacheDispatchesToBackend:
         [None, 5, timedelta(hours=5)],
     )
     def test_set_timestamp(self: Self, cache: Cache, ttl: timedelta | int | None) -> None:
+        """Verify set_timestamp dispatches to backend with correct arguments."""
         key = Key("test_key")
         value = datetime.now(UTC)
         value_type = Value.TIMESTAMP
@@ -230,15 +241,18 @@ class TestCacheDispatchesToBackend:
         assert return_value is None
 
     def test_delete_entry(self: Self, cache: Cache) -> None:
+        """Verify delete_entry dispatches to backend.delete_entry."""
         return_value = cache.delete_entry("test_key")
         cache.backend.delete_entry.assert_called_once_with(key=Key("test_key"))
         assert return_value is None
 
     def test_has_entry(self: Self, cache: Cache) -> None:
+        """Verify has_entry dispatches to backend.has_entry."""
         cache.has_entry("test_key")
         cache.backend.has_entry.assert_called_once_with(key=Key("test_key"))
 
     def test_is_expired(self: Self, cache: Cache) -> None:
+        """Verify is_expired dispatches to backend.get_metadata."""
         cache.is_expired("test_key")
         cache.backend.get_metadata.assert_called_once_with(key=Key("test_key"))
 
