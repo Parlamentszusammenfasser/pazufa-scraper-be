@@ -6,7 +6,6 @@ from pazufa_scraper_be.cache_lib import DocumentCache as BaseDocumentCache
 from pazufa_scraper_be.cache_lib import DocumentKey, Value
 from pazufa_scraper_be.cache_lib import Key as BaseKey
 from pazufa_scraper_be.cache_lib.backends import FileSystemBackend
-from pazufa_scraper_be.constants import DOK_CACHE_HISTORY_SUB_DIR_NAME
 
 
 class Key(BaseKey):
@@ -78,7 +77,7 @@ class DocumentCache(BaseDocumentCache[FileSystemBackend]):
         self.backend._write_metadata(key=key, value_type=Value.TEXT, ttl=None)
 
     def reset(self: Self) -> None:
-        history_dir = self.backend.directory / DOK_CACHE_HISTORY_SUB_DIR_NAME
+        history_dir = self.backend.directory / DOK_CACHE_HISTORY_SUB_DIR_PATH
         history_dir.mkdir(parents=True, exist_ok=True)
 
         existing = [int(p.name) for p in history_dir.iterdir() if p.is_dir() and p.name.isdigit()]

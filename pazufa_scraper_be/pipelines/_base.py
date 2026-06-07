@@ -8,10 +8,9 @@ from pazufa_corelib.api_client import AuthenticatedClient
 from pazufa_corelib.llm import LLMConnector
 from pydantic import HttpUrl
 from scrapy.crawler import Crawler
-from scrapy.statscollectors import StatsCollector
 
 from pazufa_scraper_be.cache import DocumentCache
-from pazufa_scraper_be.constants import DOK_BASE_URL, DOK_CACHE_SUB_DIR_NAME
+from pazufa_scraper_be.constants import DOK_BASE_URL, DOK_CACHE_SUB_DIR_PATH
 from pazufa_scraper_be.pardok import AnyGesetzDokument
 from pazufa_scraper_be.pipelines.stats_counter import StatsCounter
 
@@ -59,15 +58,10 @@ class CacheDirPipeline(BasePipeline):
         super().init()
 
         self._cache_dir = Path(self.crawler.settings.get("CACHE_DIR")) / str(self.wahlperiode)
-        self._dok_cache_dir = Path(self.crawler.settings.get("CACHE_DIR")) / str(self.wahlperiode) / DOK_CACHE_SUB_DIR_NAME
-        self._errors_dir = Path(self.crawler.settings.get("ERRORS_DIR")) / str(self.wahlperiode)
+        self._dok_cache_dir = Path(self.crawler.settings.get("CACHE_DIR")) / str(self.wahlperiode) / DOK_CACHE_SUB_DIR_PATH
 
         if self._cache_dir is None:
             msg = "Missing CACHE_DIR setting."
-            raise ValueError(msg)
-
-        if self._errors_dir is None:
-            msg = "Missing ERRORS_DIR setting."
             raise ValueError(msg)
 
     def get_document_cache(self: Self, document: AnyGesetzDokument, document_url: HttpUrl) -> DocumentCache:
@@ -78,12 +72,6 @@ class CacheDirPipeline(BasePipeline):
 
         cache_name = Path(document.art).joinpath(*Path(str(document_url).removeprefix(f"{DOK_BASE_URL}/{self.wahlperiode}/")).with_suffix("").parts[1:])
         return DocumentCache(base_dir=self._dok_cache_dir, name=str(cache_name))
-
-    def get_errors_dir(self: Self) -> Path:
-        crawl_start_time = self.crawler.stats.get_value("start_time").strftime("%Y-%m-%dT%H:%M:%S") if isinstance(self.crawler.stats, StatsCollector) else ""
-        errors_dir = self._errors_dir / crawl_start_time
-        errors_dir.mkdir(parents=True, exist_ok=True)
-        return errors_dir
 
 
 class ApiPipeline(BasePipeline):
