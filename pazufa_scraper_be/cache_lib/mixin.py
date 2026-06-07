@@ -113,9 +113,7 @@ class DocumentCacheMixin:
         """
         return self.read_timestamp(key=DocumentKey.DOWNLOAD_TIME)
 
-    def download_time_write(
-        self: Cache, value: datetime, ttl: timedelta | None = None
-    ) -> None:
+    def download_time_write(self: Cache, value: datetime, ttl: timedelta | None = None) -> None:
         """Write the download time to the cache.
 
         Args:
