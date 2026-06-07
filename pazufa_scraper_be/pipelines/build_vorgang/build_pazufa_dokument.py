@@ -128,7 +128,8 @@ def _get_titel(dokument: AnyGesetzDokument, document_cache: DocumentCache) -> st
     if dokument.nr is not None:
         return f"{dokument.art_l} - {dokument.nr}"
 
-    # TODO(se-jaeger): log
+    msg = f"[{dokument.vorgang.id} - {dokument.id}]: Using fallback (DokArtL) for document titel."
+    logger.info(msg)
     return dokument.art_l
 
 
