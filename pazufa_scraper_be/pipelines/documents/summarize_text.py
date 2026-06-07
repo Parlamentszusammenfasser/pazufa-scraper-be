@@ -73,12 +73,6 @@ class SummarizeExtractedPDFText(CacheDirPipeline, LLMPipeline, StatsPipeline):
             for dokument_url in dokument.all_urls:
                 document_cache = self.get_document_cache(document=dokument, document_url=dokument_url)
 
-                # TODO
-                # if dokument_cache_dir is None:
-                #     msg = f"[{vorgang.id} - {dokument.id}]: Did not get cache dir for additional URL: {dokument_url}"
-                #     logger.warning(msg)
-                #     continue
-
                 if document_cache.summary_ignore_exists():
                     self.increment_stats(SummaryCounter.IGNORE)
                     continue
