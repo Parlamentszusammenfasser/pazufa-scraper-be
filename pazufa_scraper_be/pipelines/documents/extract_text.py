@@ -1,13 +1,10 @@
 import logging
-from pathlib import Path
 from typing import Self
 
-import magic
 import xberg
 from scrapy.exceptions import DropItem
 from xberg import ExtractInput, ExtractInputKind, ExtractionConfig, OcrConfig, PageConfig
 
-from pazufa_scraper_be.constants import DOKUMENT_FILE_NAME, TEXT_FILE_NAME
 from pazufa_scraper_be.pardok import GesetzVorgang
 from pazufa_scraper_be.pipelines._base import CacheDirPipeline, StatsPipeline
 from pazufa_scraper_be.pipelines.stats_counter import TextCounter
@@ -32,8 +29,8 @@ def _get_xberg_config(*, ocr: bool) -> ExtractionConfig:
     return ExtractionConfig(enable_quality_processing=True, pages=page_config, use_cache=False, ocr=ocr_config, force_ocr=force_ocr)
 
 
-async def _extract_text(document_file: Path, *, ocr: bool) -> str:
-    extract_input = ExtractInput(kind=ExtractInputKind.URI, uri=str(document_file))
+async def _extract_text(document_bytes: bytes, *, ocr: bool) -> str:
+    extract_input = ExtractInput(kind=ExtractInputKind.BYTES, bytes=document_bytes)
     extraction_result = await xberg.extract(
         input=extract_input,
         config=_get_xberg_config(ocr=ocr),
@@ -43,7 +40,7 @@ async def _extract_text(document_file: Path, *, ocr: bool) -> str:
 
     # In the few cases, where we could not extract text, apply OCR
     if len(text) == 0 and not ocr:
-        return await _extract_text(document_file=document_file, ocr=True)
+        return await _extract_text(document_bytes=document_bytes, ocr=True)
 
     return text
 
@@ -59,22 +56,21 @@ class ExtractTextFromPDF(CacheDirPipeline, StatsPipeline):
 
         for dokument in vorgang.dokumente:
             for dokument_url in dokument.all_urls:
-                dokument_cache_dir = self.get_dokument_cache_dir(dokument=dokument, url=dokument_url)
-                if dokument_cache_dir is None:
-                    msg = f"[{vorgang.id} - {dokument.id}]: Did not get cache dir for additional URL: {dokument_url}"
-                    logger.warning(msg)
-                    continue
+                document_cache = self.get_document_cache(document=dokument, document_url=dokument_url)
 
-                dokument_file = dokument_cache_dir / DOKUMENT_FILE_NAME
-                dokument_text_file = dokument_cache_dir / TEXT_FILE_NAME
+                # TODO
+                # if dokument_cache_dir is None:
+                #     msg = f"[{vorgang.id} - {dokument.id}]: Did not get cache dir for additional URL: {dokument_url}"
+                #     logger.warning(msg)
+                #     continue
 
-                if dokument_file.exists():
-                    if dokument_text_file.exists():
+                if document_cache.document_exists():
+                    if document_cache.text_exists():
                         self.increment_stats(TextCounter.CACHE_HIT)
                         continue
 
                     self.increment_stats(TextCounter.CACHE_MISS)
-                    text = await _extract_text(document_file=dokument_file, ocr=False)
+                    text = await _extract_text(document_bytes=document_cache.document_read(), ocr=False)
 
                     # fmt: off
                     # Some postprocessing that was necessary after eyeballing documents
@@ -91,21 +87,8 @@ class ExtractTextFromPDF(CacheDirPipeline, StatsPipeline):
                         msg = f"[{vorgang.id} - {dokument.id}]: No text extracted."
                         logger.warning(msg)
 
-                    elif magic.from_buffer(text, mime=True) != "text/plain":
-                        error_file = self.get_errors_dir() / f"{dokument.id}.text"
-                        error_file.write_text(text)
-
-                        # NOTE: This is a hack, where the mime type of the saved file gets 'text/plain', which is causing issues
-                        if magic.from_file(error_file, mime=True) == "text/plain":
-                            error_file.rename(dokument_text_file)
-
-                        else:
-                            self.increment_stats(TextCounter.EXTRACT_FAILED_NOT_PLAIN_TEXT)
-                            msg = f"[{vorgang.id} - {dokument.id}]: Extracted text is not plain text."
-                            logger.warning(msg)
-
                     else:
                         self.increment_stats(TextCounter.EXTRACT_DONE)
-                        dokument_text_file.write_text(text)
+                        document_cache.text_write(text)
 
         return vorgang

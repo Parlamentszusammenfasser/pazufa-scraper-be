@@ -7,7 +7,7 @@ from .metadata import Metadata
 from .types import Key, Value
 
 
-def _check_key(key: Any) -> None:
+def _check_key(key: Any) -> None:  # noqa: ANN401
     if not isinstance(key, Key):
         msg = f"Key has to be of type 'Key', it was '{type(key)}'"
         raise TypeError(msg)
@@ -62,7 +62,7 @@ class Cache[T: Backend]:
     def _read_checks(self: Self, key: Key, expected_value_type: Value) -> None:
         """Run appropriate validation checks before a read operation."""
         self._check_existence(key=key)
-        metadata = self._backend._read_metadata(key=key)
+        metadata = self._backend.read_metadata(key=key)
         _check_expiry(metadata=metadata)
         _check_value_type(metadata, expected_value_type=expected_value_type)
 
@@ -78,7 +78,7 @@ class Cache[T: Backend]:
             key: The entry to delete.
         """
         _check_key(key=key)
-        self._backend._delete_key(key=key)
+        self._backend.delete_key(key=key)
 
     def is_expired(self: Self, key: Key) -> bool:
         """Check if an entry has expired.
@@ -95,7 +95,7 @@ class Cache[T: Backend]:
         _check_key(key=key)
         self._check_existence(key=key)
 
-        metadata = self._backend._read_metadata(key=key)
+        metadata = self._backend.read_metadata(key=key)
         return metadata.is_expired()
 
     def has_entry(self: Self, key: Key) -> bool:
@@ -108,7 +108,7 @@ class Cache[T: Backend]:
             True if the entry exists, False otherwise.
         """
         _check_key(key=key)
-        return self._backend._has_entry(key=key)
+        return self._backend.has_entry(key=key)
 
     def read_metadata(self: Self, key: Key) -> Metadata:
         """Read metadata for entry.
@@ -125,7 +125,7 @@ class Cache[T: Backend]:
         _check_key(key=key)
         self._check_existence(key=key)
 
-        metadata = self.backend._read_metadata(key=key)
+        metadata = self.backend.read_metadata(key=key)
         if metadata.key != key:
             msg = f"Key '{key}' does not fit the metadata key '{metadata.key}'."
             raise MetadataError(msg)
@@ -149,7 +149,7 @@ class Cache[T: Backend]:
         _check_key(key=key)
         self._read_checks(key=key, expected_value_type=Value.TEXT)
 
-        return self._backend._read_text(key=key)
+        return self._backend.read_text(key=key)
 
     def write_text(self: Self, key: Key, value: str, ttl: timedelta | None = None) -> None:
         """Write a text value to the cache.
@@ -162,8 +162,8 @@ class Cache[T: Backend]:
         _check_key(key=key)
         _check_value(value=value, expected=str)
 
-        self._backend._write_text(key=key, value=value)
-        self._backend._write_metadata(key=key, value_type=Value.TEXT, ttl=ttl)
+        self._backend.write_text(key=key, value=value)
+        self._backend.write_metadata(key=key, value_type=Value.TEXT, ttl=ttl)
 
     def read_bytes(self: Self, key: Key) -> bytes:
         """Read a bytes value from the cache.
@@ -182,7 +182,7 @@ class Cache[T: Backend]:
         _check_key(key=key)
         self._read_checks(key=key, expected_value_type=Value.BYTES)
 
-        return self._backend._read_bytes(key=key)
+        return self._backend.read_bytes(key=key)
 
     def write_bytes(self: Self, key: Key, value: bytes, ttl: timedelta | None = None) -> None:
         """Write a bytes value to the cache.
@@ -195,8 +195,8 @@ class Cache[T: Backend]:
         _check_key(key=key)
         _check_value(value=value, expected=bytes)
 
-        self._backend._write_bytes(key=key, value=value)
-        self._backend._write_metadata(key=key, value_type=Value.BYTES, ttl=ttl)
+        self._backend.write_bytes(key=key, value=value)
+        self._backend.write_metadata(key=key, value_type=Value.BYTES, ttl=ttl)
 
     def read_dict(self: Self, key: Key) -> dict:
         """Read a dictionary value from the cache.
@@ -215,7 +215,7 @@ class Cache[T: Backend]:
         _check_key(key=key)
         self._read_checks(key=key, expected_value_type=Value.DICT)
 
-        return self._backend._read_dict(key=key)
+        return self._backend.read_dict(key=key)
 
     def write_dict(self: Self, key: Key, value: dict, ttl: timedelta | None = None) -> None:
         """Write a dictionary value to the cache.
@@ -228,8 +228,8 @@ class Cache[T: Backend]:
         _check_key(key=key)
         _check_value(value=value, expected=dict)
 
-        self._backend._write_dict(key=key, value=value)
-        self._backend._write_metadata(key=key, value_type=Value.DICT, ttl=ttl)
+        self._backend.write_dict(key=key, value=value)
+        self._backend.write_metadata(key=key, value_type=Value.DICT, ttl=ttl)
 
     def read_timestamp(self: Self, key: Key) -> datetime:
         """Read a timestamp value from the cache.
@@ -248,7 +248,7 @@ class Cache[T: Backend]:
         _check_key(key=key)
         self._read_checks(key=key, expected_value_type=Value.TIMESTAMP)
 
-        return self._backend._read_timestamp(key=key)
+        return self._backend.read_timestamp(key=key)
 
     def write_timestamp(self: Self, key: Key, value: datetime, ttl: timedelta | None = None) -> None:
         """Write a timestamp value to the cache.
@@ -265,7 +265,8 @@ class Cache[T: Backend]:
         _check_value(value=value, expected=datetime)
 
         if value.tzinfo is None:
-            raise ValueError("Timestamps must be timezone-aware.")
+            msg = "Timestamps must be timezone-aware."
+            raise ValueError(msg)
 
-        self._backend._write_timestamp(key=key, value=value)
-        self._backend._write_metadata(key=key, value_type=Value.TIMESTAMP, ttl=ttl)
+        self._backend.write_timestamp(key=key, value=value)
+        self._backend.write_metadata(key=key, value_type=Value.TIMESTAMP, ttl=ttl)
