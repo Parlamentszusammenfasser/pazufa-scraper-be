@@ -1,5 +1,6 @@
 import json
 import logging
+import uuid
 from datetime import UTC, datetime
 from http import HTTPStatus
 from typing import Self
@@ -49,11 +50,24 @@ class SubmitVorgang(ApiPipeline, StatsPipeline):
                     self.increment_stats(VorgangCounter.submit_rejected_code(response.status_code))
                     logger.warning(msg)
 
-                    # NOTE: For convenience, we save the failed submissions as JSON files into a temp dir.
-                    # We were asked multiple times to supply these to the backend devs, so we make this code persistent now
-                    temp_error_directory = self.crawler.stats.get_value("temp_error_directory")
-                    error_dir = Path(temp_error_directory) / f"{response.status_code}"
-                    await error_dir.mkdir(parents=True, exist_ok=True)
+                    if self.debug:
+                        await self._save_failed_submission(vorgang=vorgang, id_=id_, status_code=response.status_code)
 
-                    error_file = error_dir / f"{id_}.json"
-                    await error_file.write_text(json.dumps(vorgang.to_dict(), indent=2))
+    async def _save_failed_submission(self: Self, vorgang: Vorgang, id_: str | uuid.UUID, status_code: int) -> None:
+        """Save a rejected Vorgang as JSON into the temp error directory (``<temp dir>/<status code>/<id>.json``).
+
+        Only called if the DEBUG setting is true.
+
+        Args:
+            vorgang: The rejected Vorgang.
+            id_: Identifier of the Vorgang, used as file name.
+            status_code: HTTP status code of the rejection, used as sub directory name.
+        """
+        # NOTE: For convenience, we save the failed submissions as JSON files into a temp dir.
+        # We were asked multiple times to supply these to the backend devs, so we make this code persistent now
+        temp_error_directory = self.crawler.stats.get_value("temp_error_directory")
+        error_dir = Path(temp_error_directory) / f"{status_code}"
+        await error_dir.mkdir(parents=True, exist_ok=True)
+
+        error_file = error_dir / f"{id_}.json"
+        await error_file.write_text(json.dumps(vorgang.to_dict(), indent=2))
