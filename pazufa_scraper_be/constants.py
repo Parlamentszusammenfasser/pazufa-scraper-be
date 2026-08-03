@@ -1,5 +1,6 @@
 DOK_BASE_URL = "https://pardok.parlament-berlin.de/starweb/adis/citat/VT"
 
+
 DOKUMENT_FILE_NAME = "DOKUMENT.pdf"
 URL_FILE_NAME = "URL.txt"
 DOWNLOAD_TIME_FILE_NAME = "DOWNLOAD_TIME.txt"
@@ -8,3 +9,13 @@ FILE_BYTE_HASH_FILE_NAME = "FILE_BYTE_HASH.txt"
 TEXT_FILE_NAME = "TEXT.txt"
 SUMMARY_FILE_NAME = "SUMMARY.txt"
 SUMMARY_IGNORE_FILE_NAME = "SUMMARY.ignore"
+
+
+SUBMISSION_ERROR_GRACE_PERIOD_DAYS = 30
+
+
+ANGENOMMEN = "Angenommen"
+VERTAGT = "Vertagt"
+ZUSTIMMUNG = "Zustimmung"
+ABGELEHNT = "Abgelehnt"
+ZURUECKGEZOGEN = "Zurückgezogen"

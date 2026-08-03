@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Annotated
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
@@ -46,6 +47,9 @@ class GesetzVorgang(BaseModel):
     ] = Field(alias="Dokument", default_factory=list)
 
     def model_post_init(self, _context: object) -> None:
-        """Set each child document's back-reference to this Vorgang after validation."""
-        for dokument in self.dokumente:
+        """After validation, set each child document's back-reference to this Vorgang and shift hour of Dokument Datums to ensure total order."""
+        for index, dokument in enumerate(self.dokumente):
+            if dokument.dat:
+                dokument.dat = dokument.dat + timedelta(hours=index)
+
             dokument.set_vorgang(self)

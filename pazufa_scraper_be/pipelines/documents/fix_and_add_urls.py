@@ -1,6 +1,7 @@
 import logging
 from typing import Self
 
+from pydantic import HttpUrl
 from scrapy.exceptions import DropItem
 
 from pazufa_scraper_be.pardok import AnyGesetzDokument, APrDokument, GesetzVorgang, PlPrDokument
@@ -50,6 +51,12 @@ class FixAndAddUrls(StatsPipeline):
             raise ValueError(msg)
 
         for dokument in vorgang.dokumente:
+            # NOTE: We need to fix this that early.
+            # Using Rule is not possible because we already tried to download the incorrect URL.
+            # We could change it and yield a new (changed) Item from a later stage
+            if "/iso/h19-076-" in str(dokument.lok_url):
+                dokument.lok_url = HttpUrl(str(dokument.lok_url).replace("/iso/h19-076-", "/h/h19-076-"))
+
             self._add_missing_primary_url(dokument)
             self._add_additional_urls(dokument)
 

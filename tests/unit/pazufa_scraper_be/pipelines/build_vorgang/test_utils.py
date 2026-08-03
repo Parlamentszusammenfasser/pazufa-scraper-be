@@ -154,7 +154,7 @@ def test__check_and_create_vote_outcome_station__angenommen(make_station: Callab
     assert result is not None
     assert result.typ == Stationstyp.PARL_AKZEPTANZ
     assert result.titel == "Angenommen"
-    assert result.zp_start == station.zp_start + datetime.timedelta(hours=1)
+    assert result.zp_start == station.zp_start + datetime.timedelta(minutes=30)
 
 
 @pytest.mark.parametrize(
@@ -169,7 +169,7 @@ def test__check_and_create_vote_outcome_station__abgelehnt(make_station: Callabl
     assert result is not None
     assert result.typ == Stationstyp.PARL_ABLEHNUNG
     assert result.titel == "Abgelehnt"
-    assert result.zp_start == station.zp_start + datetime.timedelta(hours=1)
+    assert result.zp_start == station.zp_start + datetime.timedelta(minutes=30)
 
 
 @pytest.mark.parametrize(
@@ -184,7 +184,7 @@ def test__check_and_create_vote_outcome_station__zurueckgezogen(make_station: Ca
     assert result is not None
     assert result.typ == Stationstyp.PARL_ZURUECKGZ
     assert result.titel == "Zurückgezogen"
-    assert result.zp_start == station.zp_start + datetime.timedelta(hours=1)
+    assert result.zp_start == station.zp_start + datetime.timedelta(minutes=30)
 
 
 @pytest.mark.parametrize(

@@ -167,7 +167,6 @@ def _get_zp_referenz(dokument: AnyGesetzDokument) -> datetime:
 def _get_zeitpunkte(dokument: AnyGesetzDokument, dokument_cache_dir: Path) -> tuple[Unset | datetime, datetime, datetime]:
     """Extract timestamps relevant for document."""
     zp_referenz = _get_zp_referenz(dokument)
-
     zp_modifiziert = _get_zp_modifiziert(dokument, dokument_cache_dir)
 
     # TODO(anyone): revisit this

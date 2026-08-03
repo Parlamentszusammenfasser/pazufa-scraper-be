@@ -129,7 +129,7 @@ class LLMPipeline(BasePipeline):
                 raise ValueError(msg)
 
             logging.getLogger("LiteLLM").setLevel(logging.FATAL)
-            litellm.suppress_debug_info = True  # ty: ignore[invalid-assignment]
+            litellm.suppress_debug_info = True
 
             logging.getLogger("pazufa_corelib.llm.llm_connector").setLevel(logging.FATAL)
 

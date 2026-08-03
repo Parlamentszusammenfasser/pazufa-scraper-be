@@ -4,6 +4,9 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from pazufa_corelib.api_client.models import Autor
+
+from pazufa_scraper_be.pardok import DrsDokument
 from pazufa_scraper_be.pipelines.build_vorgang.utils import DokumentContainer
 
 if TYPE_CHECKING:
@@ -11,6 +14,29 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def get_change_urheber_transform_fn(urheber: str) -> Callable[[DokumentContainer], None]:
+    """Get transform function that changes Autor/Urheber."""
+
+    def _change_urheber_transform_fn(current: DokumentContainer) -> None:
+        if not isinstance(current.pardok, DrsDokument):
+            return
+
+        current.pardok.urheber = [urheber]
+        if len(current.pazufa) >= 1:
+            current.pazufa[0].autoren = [Autor(organisation=urheber)]
+
+    return _change_urheber_transform_fn
+
+
+def get_change_abstract_transform_fn(abstract: str) -> Callable[[DokumentContainer], None]:
+    """Get transform function that changes Abstract."""
+
+    def _change_abstract_transform_fn(current: DokumentContainer) -> None:
+        current.pardok.abstract = abstract
+
+    return _change_abstract_transform_fn
 
 
 @dataclass
@@ -29,19 +55,15 @@ class Rule:
 class DropRule(Rule):
     """Rule that drops matching DokumentContainers from the pipeline."""
 
-    log: Callable[[], None] = lambda: None
-
 
 @dataclass
 class TransformRule(Rule):
     """Rule that transforms a matching DokumentContainer."""
 
-    transform_function: Callable[[DokumentContainer], DokumentContainer]
-    log: Callable[[], None] = lambda: None
+    transform_function: Callable[[DokumentContainer], None]
 
 
 def _merge_function(current: DokumentContainer, target: DokumentContainer) -> DokumentContainer:
-    """Merge current into target by concatenating abstracts and combining pazufa document lists."""
     abstract = ((target.pardok.abstract or "") + "\n\n" + (current.pardok.abstract or "")).strip()
     target.pardok.abstract = abstract or None
     return DokumentContainer(pardok=target.pardok, pazufa=target.pazufa + current.pazufa)
@@ -51,7 +73,6 @@ def _merge_function(current: DokumentContainer, target: DokumentContainer) -> Do
 class _MergeRule(Rule):
     merge_into: Callable[[DokumentContainer, DokumentContainer], bool]
     merge_function: Callable[[DokumentContainer, DokumentContainer], DokumentContainer] = _merge_function
-    log: Callable[[], None] = lambda: None
 
 
 @dataclass
@@ -95,7 +116,6 @@ def apply_rules(pardok_pazufa_doks: list[DokumentContainer], rules: Sequence[Rul
                             if rule.merge_into(current, target):
                                 append_item = False
                                 pending.append((current, rule))
-                                rule.log()
                                 break
 
                     case BackwardMergeRule():
@@ -103,17 +123,13 @@ def apply_rules(pardok_pazufa_doks: list[DokumentContainer], rules: Sequence[Rul
                             if rule.merge_into(current, result[i]):
                                 append_item = False
                                 result[i] = rule.merge_function(current, result[i])
-                                rule.log()
                                 break
 
                     case TransformRule():
-                        # NOTE: don't break because we (potentially) want to apply other rules
-                        current = rule.transform_function(current)
-                        rule.log()
+                        rule.transform_function(current)
 
                     case DropRule():
                         append_item = False
-                        rule.log()
                         break
 
         if append_item:

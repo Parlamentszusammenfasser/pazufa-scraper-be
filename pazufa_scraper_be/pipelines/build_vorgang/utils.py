@@ -10,6 +10,7 @@ from pazufa_corelib.api_client.models import Doktyp, Gremium, Parlament, Station
 from pazufa_corelib.api_client.models import Dokument as PaZuFaDokument
 from pazufa_corelib.api_client.types import UNSET, Unset
 
+from pazufa_scraper_be.constants import ABGELEHNT, ANGENOMMEN, ZURUECKGEZOGEN, ZUSTIMMUNG
 from pazufa_scraper_be.pardok import APrDokument, BaseGesetzDokument, DrsDokument, GVBlDokument, PlPrDokument
 
 if TYPE_CHECKING:
@@ -91,27 +92,22 @@ def get_station_zeitpunkte(dok_container: DokumentContainer) -> tuple[datetime, 
 def check_and_create_vote_outcome_station(station: Station, dok_abstract: str) -> Station | None:
     """Check if station is Lesung and contains information about vote outcome. If so, create and return new station."""
     if station.typ == Stationstyp.PARL_VOLLVLSGN:
-        angenommen = "Angenommen"
-        zustimmung = "Zustimmung"
-        abgelehnt = "Abgelehnt"
-        zurueckgezogen = "Zurückgezogen"
-
         typ = None
-        if bool(re.search(rf"\b{angenommen}\b|\b{zustimmung}\b", dok_abstract)):
+        if bool(re.search(rf"\b{ANGENOMMEN}\b|\b{ZUSTIMMUNG}\b", dok_abstract)):
             typ = Stationstyp.PARL_AKZEPTANZ
-            titel = angenommen
+            titel = ANGENOMMEN
 
-        elif bool(re.search(rf"\b{abgelehnt}\b", dok_abstract)):
+        elif bool(re.search(rf"\b{ABGELEHNT}\b", dok_abstract)):
             typ = Stationstyp.PARL_ABLEHNUNG
-            titel = abgelehnt
+            titel = ABGELEHNT
 
-        elif bool(re.search(rf"\b{zurueckgezogen}\b", dok_abstract)):
+        elif bool(re.search(rf"\b{ZURUECKGEZOGEN}\b", dok_abstract)):
             typ = Stationstyp.PARL_ZURUECKGZ
-            titel = zurueckgezogen
+            titel = ZURUECKGEZOGEN
 
         if typ:
             new_station = Station.from_dict(station.to_dict() | {"typ": typ, "titel": titel})
-            new_station.zp_start = station.zp_start + timedelta(hours=1)
+            new_station.zp_start = station.zp_start + timedelta(minutes=30)
 
             return new_station
 

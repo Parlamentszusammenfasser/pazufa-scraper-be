@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime
 from http import HTTPStatus
 from typing import Self
 
@@ -6,6 +7,7 @@ from pazufa_corelib.api_client.api.vorgang import vorgang_put
 from pazufa_corelib.api_client.models.vorgang import Vorgang
 from scrapy.exceptions import DropItem
 
+from pazufa_scraper_be.constants import SUBMISSION_ERROR_GRACE_PERIOD_DAYS
 from pazufa_scraper_be.pipelines._base import ApiPipeline, StatsPipeline
 from pazufa_scraper_be.pipelines.stats_counter import VorgangCounter
 
@@ -30,10 +32,17 @@ class SubmitVorgang(ApiPipeline, StatsPipeline):
                 self.increment_stats(VorgangCounter.SUBMIT_ACCEPTED)
 
             else:
-                self.increment_stats(VorgangCounter.submit_rejected_code(response.status_code))
-
                 id_ = vorgang.ids[0].id if vorgang.ids else vorgang.api_id
                 url_part = f"URL: {vorgang.links[0]} " if vorgang.links else ""
 
                 msg = f"[{id_}]: Got {response.status_code} status code when submitting to PaZuFa API. {url_part}Response: {response.content.decode('utf-8')}"
-                logger.warning(msg)
+
+                last_update = vorgang.stationen[-1].zp_start.date()
+                days_since_last_update = (datetime.now(UTC).date() - last_update).days
+                if days_since_last_update < SUBMISSION_ERROR_GRACE_PERIOD_DAYS:
+                    self.increment_stats(VorgangCounter.SUBMIT_ERROR)
+                    logger.info(msg)
+
+                else:
+                    self.increment_stats(VorgangCounter.submit_rejected_code(response.status_code))
+                    logger.warning(msg)
