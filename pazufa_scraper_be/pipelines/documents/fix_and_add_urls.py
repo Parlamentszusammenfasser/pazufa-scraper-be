@@ -12,6 +12,9 @@ from pazufa_scraper_be.pipelines.stats_counter import DokumentCounter
 
 logger = logging.getLogger(__name__)
 
+CORRECTED_URL_PART = "/h/h19-076-"
+INCORRECT_URL_PART = "/iso/h19-076-"
+
 
 class FixAndAddUrls(StatsPipeline):
     """Pipeline that fixes and adds additional URLs."""
@@ -54,8 +57,8 @@ class FixAndAddUrls(StatsPipeline):
             # NOTE: We need to fix this that early.
             # Using Rule is not possible because we already tried to download the incorrect URL.
             # We could change it and yield a new (changed) Item from a later stage
-            if "/iso/h19-076-" in str(dokument.lok_url):
-                dokument.lok_url = HttpUrl(str(dokument.lok_url).replace("/iso/h19-076-", "/h/h19-076-"))
+            if INCORRECT_URL_PART in str(dokument.lok_url):
+                dokument.lok_url = HttpUrl(str(dokument.lok_url).replace(INCORRECT_URL_PART, CORRECTED_URL_PART))
 
             self._add_missing_primary_url(dokument)
             self._add_additional_urls(dokument)

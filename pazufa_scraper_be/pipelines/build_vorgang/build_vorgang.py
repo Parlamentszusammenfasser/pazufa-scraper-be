@@ -141,7 +141,6 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
                 gremium_federf=gremium_federf,
                 # NOTE: Following should be revisited
                 link=UNSET,
-                trojanergefahr=UNSET,
                 schlagworte=UNSET,
                 additional_links=UNSET,
                 stellungnahmen=UNSET,
