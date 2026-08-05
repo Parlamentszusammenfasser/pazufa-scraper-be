@@ -68,7 +68,7 @@ def _build_payload(scrapy_stats: StatsCollector, backend_host: str) -> dict:
     number_total_vorgaenge = int(scrapy_stats.get_value(VorgangCounter.TOTAL, 0))
     number_out_of_scope_vorgaenge = int(scrapy_stats.get_value(VorgangCounter.DROP_OUT_OF_SCOPE, 0))
     number_submitted_vorgaenge = int(scrapy_stats.get_value(VorgangCounter.SUBMIT_ATTEMPT, 0))
-    number_transient_error_vorgaenge = int(scrapy_stats.get_value(VorgangCounter.SUBMIT_ERROR, 0))
+    number_grace_period_error_vorgaenge = int(scrapy_stats.get_value(VorgangCounter.SUBMIT_ERROR, 0))
     number_accepted_vorgaenge = int(scrapy_stats.get_value(VorgangCounter.SUBMIT_ACCEPTED, 0))
     rejected_codes_counts = {
         int(key.split("/")[-1]): int(count) for key, count in scrapy_stats.get_stats().items() if key.startswith(VorgangCounter.SUBMIT_REJECTED)
@@ -83,7 +83,7 @@ def _build_payload(scrapy_stats: StatsCollector, backend_host: str) -> dict:
         f"🚫 `{number_out_of_scope_vorgaenge}` Vorgänge are out of scope",
         f"📤 `{number_submitted_vorgaenge}` submitted to the backend",
         f"├ ✅ `{number_accepted_vorgaenge}` accepted",
-        f"├ ⚠️ `{number_transient_error_vorgaenge}` have transient errors",
+        f"├ ⚠️ `{number_grace_period_error_vorgaenge}` grace period errors",
         f"└ ❌ `{number_rejected_vorgaenge}` rejected with status codes",
         *rejected_lines,
         "\n ",  # Nicer formatting in Mattermost
