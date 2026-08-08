@@ -1,9 +1,11 @@
 import logging
+from pathlib import Path
 from typing import Self
 
-import kreuzberg
 import magic
+import xberg
 from scrapy.exceptions import DropItem
+from xberg import ExtractInput, ExtractInputKind, ExtractionConfig, OcrConfig, PageConfig
 
 from pazufa_scraper_be.constants import DOKUMENT_FILE_NAME, TEXT_FILE_NAME
 from pazufa_scraper_be.pardok import GesetzVorgang
@@ -13,8 +15,41 @@ from pazufa_scraper_be.pipelines.stats_counter import TextCounter
 logger = logging.getLogger(__name__)
 
 
+def _get_xberg_config(*, ocr: bool) -> ExtractionConfig:
+    page_config = PageConfig(extract_pages=True)
+
+    if ocr:
+        ocr_config = OcrConfig(
+            backend="tesseract",
+            language=["deu"],
+        )
+        force_ocr = True
+
+    else:
+        ocr_config = None
+        force_ocr = False
+
+    return ExtractionConfig(enable_quality_processing=True, pages=page_config, use_cache=False, ocr=ocr_config, force_ocr=force_ocr)
+
+
+async def _extract_text(document_file: Path, *, ocr: bool) -> str:
+    extract_input = ExtractInput(kind=ExtractInputKind.URI, uri=str(document_file))
+    extraction_result = await xberg.extract(
+        input=extract_input,
+        config=_get_xberg_config(ocr=ocr),
+    )
+    extraction_result = extraction_result.results[0]
+    text = "\n".join([page.content for page in extraction_result.pages or []])
+
+    # In the few cases, where we could not extract text, apply OCR
+    if len(text) == 0 and not ocr:
+        return await _extract_text(document_file=document_file, ocr=True)
+
+    return text
+
+
 class ExtractTextFromPDF(CacheDirPipeline, StatsPipeline):
-    """Pipeline that extracts plain text from cached PDF documents using kreuzberg."""
+    """Pipeline that extracts plain text from cached PDF documents using xberg."""
 
     async def process_item(self: Self, vorgang: GesetzVorgang) -> GesetzVorgang:
         """Extract text from cached PDFs for each document in the Vorgang."""
@@ -39,11 +74,7 @@ class ExtractTextFromPDF(CacheDirPipeline, StatsPipeline):
                         continue
 
                     self.increment_stats(TextCounter.CACHE_MISS)
-                    pdf = await kreuzberg.extract_file(
-                        dokument_file,
-                        config=kreuzberg.ExtractionConfig(enable_quality_processing=True, pages=kreuzberg.PageConfig(extract_pages=True), use_cache=False),
-                    )
-                    text = "\n".join([page.get("content", "") for page in pdf.pages or []])
+                    text = await _extract_text(document_file=dokument_file, ocr=False)
 
                     # fmt: off
                     # Some postprocessing that was necessary after eyeballing documents
@@ -56,7 +87,6 @@ class ExtractTextFromPDF(CacheDirPipeline, StatsPipeline):
                     # fmt: on
 
                     if len(text) == 0:
-                        # TODO(se-jaeger): Use OCR as fallback
                         self.increment_stats(TextCounter.EXTRACT_FAILED_EMPTY_TEXT)
                         msg = f"[{vorgang.id} - {dokument.id}]: No text extracted."
                         logger.warning(msg)

@@ -368,7 +368,7 @@ def test_get_autoren(request: pytest.FixtureRequest, fixture_name: str, dokument
         (False, True, logging.WARNING),
     ],
 )
-def test_check_text_file(  # noqa: PLR0913
+def test_check_text_file(  # noqa: PLR0913, PLR0917
     tmp_path: Path,
     base_vorgang_data: dict[str, Any],
     plpr_data: dict[str, Any],
@@ -409,13 +409,13 @@ def test_check_text_file(  # noqa: PLR0913
         (False, True, logging.WARNING),
     ],
 )
-def test_check_hash_file(  # noqa: PLR0913
+def test_check_hash_file(  # noqa: PLR0913, PLR0917
     tmp_path: Path,
     base_vorgang_data: dict[str, Any],
     plpr_data: dict[str, Any],
     file_exists: bool,  # noqa: FBT001
     expected_result: bool,  # noqa: FBT001
-    log_level: None | logging._Level,
+    log_level: logging._Level | None,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Verify that _check_hash_file correctly identifies missing hash files and logs warnings."""
@@ -449,13 +449,13 @@ def test_check_hash_file(  # noqa: PLR0913
         (False, True, logging.INFO),
     ],
 )
-def test_check_summary_file(  # noqa: PLR0913
+def test_check_summary_file(  # noqa: PLR0913, PLR0917
     tmp_path: Path,
     base_vorgang_data: dict[str, Any],
     plpr_data: dict[str, Any],
     file_exists: bool,  # noqa: FBT001
     expected_result: bool,  # noqa: FBT001
-    log_level: None | logging._Level,
+    log_level: logging._Level | None,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Verify that _check_summary_file correctly identifies missing summary files and logs info."""

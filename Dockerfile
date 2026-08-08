@@ -29,6 +29,8 @@ FROM debian:trixie-slim@sha256:b6e2a152f22a40ff69d92cb397223c906017e1391a73c952b
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic1 \
+    tesseract-ocr \
+    tesseract-ocr-deu \
  && rm -rf /var/lib/apt/lists/*
 
 # Setup a non-root user

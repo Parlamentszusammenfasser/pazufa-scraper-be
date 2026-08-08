@@ -28,7 +28,7 @@ A scraper for the [Abgeordnetenhaus von Berlin](https://www.abgeordnetenhaus-ber
 ([pazufa.de](https://pazufa.de)).
 
 Built with [Scrapy](https://scrapy.org/) (crawling & item pipelines), [pydantic](https://docs.pydantic.dev/) (data validation),
-[kreuzberg](https://codeberg.org/PaZuFa/kreuzberg) (PDF extraction), and
+[xberg](https://xberg.io/) (PDF extraction), and
 [pazufa-corelib](https://codeberg.org/PaZuFa/pazufa-scraper-core) (pazufa backend api client & LLM summaries).
 
 ---

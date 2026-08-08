@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends gcc libssl-dev 
 # Install libmagic
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic1 \
+    tesseract-ocr \
+    tesseract-ocr-deu \
  && rm -rf /var/lib/apt/lists/*
 
 # Copy the project source

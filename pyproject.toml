@@ -6,11 +6,11 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Sebastian Jäger", email = "git@sebastian-jaeger.me" }]
 dependencies = [
-  "kreuzberg>=4.9.7",
   "pazufa-corelib>=0.1.2",
   "pydantic>=2.13.4",
   "python-magic>=0.4.27",
   "scrapy>=2.16.0",
+  "xberg>=1.0.0",
 ]
 
 [dependency-groups]
@@ -43,6 +43,7 @@ select = [
   "ALL",  # Include all the rules, including new ones
 ]
 ignore = [
+  "CPY001",  # Copyright info not necessary
   "FIX",  # Temporary developer notes should not break actions
   "COM812",  # For compatibility with ruff-format
   "ISC001",  # For compatibility with ruff-format
