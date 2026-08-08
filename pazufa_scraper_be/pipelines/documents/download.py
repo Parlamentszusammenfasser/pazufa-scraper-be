@@ -28,6 +28,8 @@ from pazufa_scraper_be.pipelines.stats_counter import DokumentCounter
 
 logger = logging.getLogger(__name__)
 
+LAST_MODIFIED_TIME_FORMAT = "%a, %d %b %Y %H:%M:%S %Z"
+
 
 def _reset_cache_dir(cache_dir: Path) -> None:
     history_dir = cache_dir / DOK_CACHE_HISTORY_SUB_DIR_NAME
@@ -64,7 +66,7 @@ async def _reset_cache_if_file_got_modified(dokument_cache_dir: Path, dokument_u
     request = Request(dokument_url.encoded_string(), method="HEAD", callback=NO_CALLBACK)
     response = await engine.download_async(request)
     if last_modified_header_as_byte := response.headers.get("Last-Modified"):
-        last_modified_time_from_header = datetime.strptime(last_modified_header_as_byte.decode("utf-8"), "%a, %d %b %Y %H:%M:%S %Z").astimezone(UTC)
+        last_modified_time_from_header = datetime.strptime(last_modified_header_as_byte.decode("utf-8"), LAST_MODIFIED_TIME_FORMAT).astimezone(UTC)
 
         if last_modified_time_from_cache != last_modified_time_from_header:
             _reset_cache_dir(dokument_cache_dir)
@@ -142,7 +144,7 @@ class DownloadAndCacheDocuments(CacheDirPipeline, StatsPipeline):
 
                 if last_modified_header_as_byte := response.headers.get("Last-Modified"):
                     last_modified_as_iso = (
-                        datetime.strptime(last_modified_header_as_byte.decode("utf-8"), "%a, %d %b %Y %H:%M:%S %Z").replace(tzinfo=UTC).isoformat()
+                        datetime.strptime(last_modified_header_as_byte.decode("utf-8"), LAST_MODIFIED_TIME_FORMAT).astimezone(UTC).isoformat()
                     )
                     dokument_last_modified_file.write_text(last_modified_as_iso)
 
