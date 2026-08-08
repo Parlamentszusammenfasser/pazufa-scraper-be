@@ -11,7 +11,7 @@ from pazufa_corelib.api_client.models import Dokument as PaZuFaDokument
 from pazufa_corelib.api_client.types import UNSET, Unset
 
 from pazufa_scraper_be.constants import ABGELEHNT, ANGENOMMEN, ZURUECKGEZOGEN, ZUSTIMMUNG
-from pazufa_scraper_be.pardok import APrDokument, BaseGesetzDokument, DrsDokument, GVBlDokument, PlPrDokument
+from pazufa_scraper_be.pardok import APrDokument, BaseGesetzDokument, DrsDokument, GesetzVorgang, GVBlDokument, PlPrDokument
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -25,6 +25,23 @@ class DokumentContainer:
 
     pardok: BaseGesetzDokument
     pazufa: list[PaZuFaDokument]
+
+
+def get_vorgang_schlagworte(vorgang: GesetzVorgang) -> list[str] | None:
+    """Get Schlagworte from Vorgang's Nebeneinträge."""
+    return list({n.desk for n in vorgang.nebeneintraege}) or None
+
+
+def merge_vorgang_and_station_schlagworte(vorgang_schlagworte: list[str] | None, dok_container: DokumentContainer) -> list[str] | Unset:
+    """Merge vorgang schlagworte with schlagworte of this station's documents schlagworte (deduplicated)."""
+    station_doks_schlagworte = {schlagwort for dok in dok_container.pazufa for schlagwort in dok.schlagworte or [] if schlagwort}
+    schlagworte = vorgang_schlagworte or []
+    schlagworte += list(station_doks_schlagworte) or []
+
+    if not schlagworte:
+        schlagworte = UNSET
+
+    return schlagworte
 
 
 def get_station_typ_and_gremium(dok_container: DokumentContainer) -> tuple[Stationstyp, tuple[Gremium, bool | Unset]]:
