@@ -49,6 +49,7 @@ class DokumentCounter(StatsCounter):
     ADDITIONAL_PRUNED = _DOK_URL + "/pruned_addtional"
 
     CACHE_HIT = _DOK_CACHE + "/hit"
+    CACHE_RESET = _DOK_CACHE + "/reset"
     CACHE_MISS = _DOK_CACHE + "/miss"
 
     DOWNLOAD_DONE = _DOK_DOWNLOAD + "/done"

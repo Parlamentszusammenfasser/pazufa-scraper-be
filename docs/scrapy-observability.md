@@ -40,16 +40,18 @@ Counters are grouped by the data entity they track. Each section notes the respo
 
 ```text
 PaZuFa/Vorgang/
-├── total                          ← total valid items
+├── total                                    ← total valid items
 ├── drop/
-│   ├── incorrect                  ← parse failure
-│   ├── no_documents               ← build failure
-│   └── no_stations                ← build failure
+│   ├── incorrect                            ← parse failure
+│   ├── out_of_scope                         ← outside wahlperiode scope
+│   ├── no_documents                         ← build failure
+│   └── no_stations                          ← build failure
 └── submit/
-    ├── attempt                    ← PUT sent
-    ├── accepted                   ← HTTP 201
+    ├── attempt                              ← PUT sent
+    ├── accepted                             ← HTTP 201
+    ├── grace_period_error                   ← grace period exceeded on submit
     └── rejected/
-        └── {status_code}          ← dispatch by non-201 HTTP status (dynamic)
+        └── {status_code}                    ← dispatch by non-201 HTTP status (dynamic)
 ```
 
 ### Dokument
@@ -62,14 +64,19 @@ One count per document URL processed.
 
 ```text
 PaZuFa/Dokument/
+├── url/
+│   ├── missing_primary                      ← primary url missing, using additional
+│   ├── recovered_primary_from_additional    ← primary restored from additional url
+│   └── pruned_addtional                     ← additional url pruned as duplicate
 ├── cache/
-│   ├── hit                        ← served from cache
-│   └── miss                       ← cache cold, download needed
+│   ├── hit                                  ← served from cache
+│   ├── miss                                 ← cache cold, download needed
+│   └── reset                                ← cache invalidated
 └── download/
-    ├── done                       ← success
+    ├── done                                 ← success
     └── failed/
-        ├── incorrect_response     ← bad response body type
-        └── incorrect_status       ← non-200 HTTP status
+        ├── incorrect_response               ← bad response body type
+        └── incorrect_status                 ← non-200 HTTP status
 ```
 
 ### Text
@@ -83,13 +90,13 @@ One count per document URL processed.
 ```text
 PaZuFa/Text/
 ├── cache/
-│   ├── hit                        ← served from cache
-│   └── miss                       ← cache cold, extraction needed
+│   ├── hit                                  ← served from cache
+│   └── miss                                 ← cache cold, extraction needed
 └── extract/
-    ├── done                       ← success
+    ├── done                                 ← success
     └── failed/
-        ├── empty_text             ← empty extraction result
-        └── not_plain_text         ← extraction result not plain text
+        ├── empty_text                       ← empty extraction result
+        └── not_plain_text                   ← extraction result not plain text
 ```
 
 ### LLM + Summary
@@ -108,12 +115,13 @@ PaZuFa/
 │       ├── hit                              ← served from cache
 │       └── miss                             ← cache cold, LLM call needed
 └── LLM/
-    └── extract_relevant_section/
+    ├── extract_relevant_section/
     │   ├── total                            ← total attempts to extract relevant section using LLM
     │   ├── done                             ← success
     │   └── failed                           ← failed
     └── summarize/
         ├── {art_l}                          ← dispatch by document type (dynamic)
+        ├── total                            ← total summarize attempts
         ├── done                             ← success
         └── failed/
             ├── provider                     ← LLM provider error
