@@ -17,7 +17,7 @@ def parse_german_date(date_or_str: date | datetime | str) -> datetime:
         date_ = date_or_str
 
     elif isinstance(date_or_str, str):
-        date_ = datetime.strptime(date_or_str, "%d.%m.%Y").astimezone(UTC).date()
+        date_ = datetime.strptime(date_or_str, "%d.%m.%Y").replace(tzinfo=UTC).date()
 
     else:
         msg = f"Can not parse given type: {type(date_or_str)}"
