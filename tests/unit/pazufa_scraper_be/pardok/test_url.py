@@ -2,6 +2,7 @@ import asyncio
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from pydantic import HttpUrl
@@ -115,6 +116,15 @@ def test_build_ausschussprotokoll_variant_url_rejects_malformed(url: str) -> Non
     """build_ausschussprotokoll_variant_url raises ValueError for URLs it cannot split."""
     with pytest.raises(ValueError, match="Cannot derive APr variant"):
         build_ausschussprotokoll_variant_url(HttpUrl(url), ProtokollTyp.Beschluss)
+
+
+def test_build_ausschussprotokoll_variant_url_rejects_url_with_none_path() -> None:
+    """build_ausschussprotokoll_variant_url raises ValueError when url.path is None."""
+    mock_url = MagicMock(spec=HttpUrl)
+    mock_url.path = None
+
+    with pytest.raises(ValueError, match="should contain the path to a file but lacks any path"):
+        build_ausschussprotokoll_variant_url(mock_url, ProtokollTyp.Beschluss)
 
 
 # Protokoll order ---------------------------------------------------------------
