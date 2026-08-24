@@ -1,8 +1,10 @@
+import asyncio
 import datetime
 from collections.abc import Callable
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from scrapy import signals
 from scrapy.statscollectors import StatsCollector
@@ -265,7 +267,7 @@ def test_signal_connects_to_spider_closed(valid_crawler: MagicMock) -> None:
 def test_webhook_url_constructed_correctly(valid_crawler: MagicMock) -> None:
     """Test Webhook URL creation."""
     notifier = MattermostNotifier(valid_crawler)
-    assert notifier._mattermost_webhook_url == "https://mattermost.example.com/token123"  # noqa: SLF001
+    assert notifier._mattermost_webhook_url == "https://mattermost.example.com/token123"
 
 
 def test_webhook_url_trailing_slash_stripped(make_crawler: Callable[..., MagicMock]) -> None:
@@ -278,7 +280,7 @@ def test_webhook_url_trailing_slash_stripped(make_crawler: Callable[..., MagicMo
         }
     )
     notifier = MattermostNotifier(crawler)
-    assert notifier._mattermost_webhook_url == "https://mattermost.example.com/token123"  # noqa: SLF001
+    assert notifier._mattermost_webhook_url == "https://mattermost.example.com/token123"
 
 
 def test_token_set_but_no_url_raises(make_crawler: Callable[..., MagicMock]) -> None:
@@ -292,3 +294,113 @@ def test_token_set_but_no_url_raises(make_crawler: Callable[..., MagicMock]) -> 
     )
     with pytest.raises(ValueError, match=r".*MATTERMOST_TOKEN.*MATTERMOST_URL.*"):
         MattermostNotifier(crawler)
+
+
+def test_from_crawler_creates_instance(valid_crawler: MagicMock) -> None:
+    """Test that from_crawler classmethod creates a MattermostNotifier instance."""
+    notifier = MattermostNotifier.from_crawler(valid_crawler)
+    assert isinstance(notifier, MattermostNotifier)
+    assert notifier.crawler is valid_crawler
+
+
+def test_notify_mattermost_success(valid_crawler: MagicMock, full_stats_w_submit: StatsCollector) -> None:
+    """Test that _notify_mattermost successfully sends a POST request with correct payload."""
+
+    async def _test() -> None:
+        notifier = MattermostNotifier(valid_crawler)
+        valid_crawler.stats = full_stats_w_submit
+
+        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client_class.return_value = mock_client
+
+            await notifier._notify_mattermost()
+
+            mock_client.post.assert_called_once()
+            call_args = mock_client.post.call_args
+            assert call_args[0][0] == "https://mattermost.example.com/token123"
+            expected_timeout = 10
+            assert call_args[1]["timeout"] == expected_timeout
+            assert call_args[1]["json"]["username"] == "Scraper BE"
+            assert "api.pazufa.de" in call_args[1]["json"]["text"]
+
+    asyncio.run(_test())
+
+
+def test_notify_mattermost_http_error(valid_crawler: MagicMock, full_stats_w_submit: StatsCollector) -> None:
+    """Test that _notify_mattermost catches httpx.HTTPError and logs it."""
+
+    async def _test() -> None:
+        notifier = MattermostNotifier(valid_crawler)
+        valid_crawler.stats = full_stats_w_submit
+
+        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.post.side_effect = httpx.HTTPError("Network error")
+            mock_client_class.return_value = mock_client
+
+            with patch("pazufa_scraper_be.mattermost.logger") as mock_logger:
+                await notifier._notify_mattermost()
+                mock_logger.exception.assert_called_once_with("Failed to notify Mattermost.")
+
+    asyncio.run(_test())
+
+
+def test_notify_mattermost_timeout_error(valid_crawler: MagicMock, full_stats_w_submit: StatsCollector) -> None:
+    """Test that _notify_mattermost catches httpx.TimeoutException and logs it."""
+
+    async def _test() -> None:
+        notifier = MattermostNotifier(valid_crawler)
+        valid_crawler.stats = full_stats_w_submit
+
+        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+            mock_client = AsyncMock()
+            mock_client.__aenter__.return_value = mock_client
+            mock_client.__aexit__.return_value = None
+            mock_client.post.side_effect = httpx.TimeoutException("Request timeout")
+            mock_client_class.return_value = mock_client
+
+            with patch("pazufa_scraper_be.mattermost.logger") as mock_logger:
+                await notifier._notify_mattermost()
+                mock_logger.exception.assert_called_once_with("Failed to notify Mattermost.")
+
+    asyncio.run(_test())
+
+
+def test_notify_mattermost_skips_when_stats_none(valid_crawler: MagicMock) -> None:
+    """Test that _notify_mattermost returns early when crawler.stats is None."""
+
+    async def _test() -> None:
+        notifier = MattermostNotifier(valid_crawler)
+        valid_crawler.stats = None
+
+        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+            await notifier._notify_mattermost()
+            mock_client_class.assert_not_called()
+
+    asyncio.run(_test())
+
+
+def test_notify_mattermost_skips_when_backend_host_none(make_crawler: Callable[..., MagicMock], full_stats_w_submit: StatsCollector) -> None:
+    """Test that _notify_mattermost returns early when backend_host is None."""
+
+    async def _test() -> None:
+        crawler = make_crawler(
+            {
+                "MATTERMOST_TOKEN": "token123",
+                "MATTERMOST_URL": "https://mattermost.example.com",
+                "API_URL": None,
+            }
+        )
+        notifier = MattermostNotifier(crawler)
+        crawler.stats = full_stats_w_submit
+
+        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+            await notifier._notify_mattermost()
+            mock_client_class.assert_not_called()
+
+    asyncio.run(_test())
