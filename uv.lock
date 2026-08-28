@@ -1991,7 +1991,7 @@ wheels = [
 
 [[package]]
 name = "pazufa-corelib"
-version = "0.1.2"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "instructor", extra = ["litellm"] },
@@ -2003,9 +2003,9 @@ dependencies = [
     { name = "rapidfuzz" },
     { name = "w3lib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b9/b4/0b5a92c14b8954d48fc07f6cb055a809dfd7de31b6a6c673215babe15bae/pazufa_corelib-0.1.2.tar.gz", hash = "sha256:52f9ac74e06d1bb89fb429a09d49c5f0f0a98ed762ee29223de24a7a49852c68", size = 105391, upload-time = "2026-06-16T16:27:45.153Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/54/74/7411289ee71c599fd0900473b746c5540fa81ae054143da307039b254664/pazufa_corelib-0.2.1.tar.gz", hash = "sha256:07ef73b6077bb02a4900b36bd85f3ddef00ec682cae4eda9e77f71bed0ed9645", size = 127286, upload-time = "2026-08-07T15:21:50.838Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/58/1952fc3bd9f7e3bdaee7a0cbe91911dd03777d827ea435024043467f160f/pazufa_corelib-0.1.2-py3-none-any.whl", hash = "sha256:0a4b89656ecdb1d73b98ac98dda98be060c0b8253d6d8ab2c30c961da70dd977", size = 166761, upload-time = "2026-06-16T16:27:43.72Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/82/4668f4dc2470fb005622deccb082d349797eaa8ebbe7fa0acb46cb860511/pazufa_corelib-0.2.1-py3-none-any.whl", hash = "sha256:930bf4470b9b17792eee5913103f6d7f97da8e41374f5503506fe03ed940252e", size = 206272, upload-time = "2026-08-07T15:21:49.525Z" },
 ]
 
 [[package]]
@@ -2034,7 +2034,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pazufa-corelib", specifier = ">=0.1.2" },
+    { name = "pazufa-corelib", specifier = ">=0.2.1" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "python-magic", specifier = ">=0.4.27" },
     { name = "scrapy", specifier = ">=2.16.0" },

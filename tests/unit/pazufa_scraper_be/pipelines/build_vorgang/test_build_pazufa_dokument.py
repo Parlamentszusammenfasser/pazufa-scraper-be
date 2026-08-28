@@ -12,7 +12,7 @@ from pazufa_corelib.api_client.types import UNSET
 from pydantic import HttpUrl
 
 from pazufa_scraper_be.constants import (
-    FILE_BYTE_HASH_FILE_NAME,
+    DOKUMENT_FILE_NAME,
     LAST_MODIFIED_FILE_NAME,
     SUMMARY_FILE_NAME,
     TEXT_FILE_NAME,
@@ -30,7 +30,6 @@ from pazufa_scraper_be.pardok.dokument import (
 )
 from pazufa_scraper_be.pardok.vorgang import GesetzVorgang
 from pazufa_scraper_be.pipelines.build_vorgang.build_pazufa_dokument import (
-    _check_hash_file,
     _check_summary_file,
     _check_text_file,
     _clean_urheber,
@@ -409,46 +408,6 @@ def test_check_text_file(  # noqa: PLR0913, PLR0917
     ("file_exists", "expected_result", "log_level"),
     [
         (True, False, None),
-        (False, True, logging.WARNING),
-    ],
-)
-def test_check_hash_file(  # noqa: PLR0913, PLR0917
-    tmp_path: Path,
-    base_vorgang_data: dict[str, Any],
-    plpr_data: dict[str, Any],
-    file_exists: bool,  # noqa: FBT001
-    expected_result: bool,  # noqa: FBT001
-    log_level: logging._Level | None,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    """Verify that _check_hash_file correctly identifies missing hash files and logs warnings."""
-    dokument = PlPrDokument.model_validate(plpr_data)
-    gesetz_vorgang_data = build_gesetz_vorgang_data(
-        base_vorgang_data=base_vorgang_data,
-        dok_datas=[plpr_data],
-        neben_eintrag_data=[],
-    )
-    gesetz_vorgang = GesetzVorgang.model_validate(gesetz_vorgang_data)
-    dokument.set_vorgang(gesetz_vorgang)
-
-    hash_file = tmp_path / "HASH.txt"
-    if file_exists:
-        hash_file.write_text("some hash")
-
-    if log_level:
-        caplog.set_level(log_level)
-
-    result = _check_hash_file(dokument, hash_file)
-    assert result == expected_result
-
-    if not file_exists:
-        assert "Hash file does not exist" in caplog.text
-
-
-@pytest.mark.parametrize(
-    ("file_exists", "expected_result", "log_level"),
-    [
-        (True, False, None),
         (False, True, logging.INFO),
     ],
 )
@@ -499,13 +458,13 @@ def test_build_pazufa_dokument_happy_path(tmp_path: Path, plpr_data: dict[str, A
     cache_dir = tmp_path / "dokument-folder"
     cache_dir.mkdir()
 
+    document_content = b"This is the document content as bytes."
     text_content = "This is the extracted text content."
-    hash_content = "abc123hash"
     summary_content = "This is a short summary."
     last_modified_str = "2024-05-10T12:34:56+00:00"
 
+    (cache_dir / DOKUMENT_FILE_NAME).write_bytes(document_content)
     (cache_dir / TEXT_FILE_NAME).write_text(text_content)
-    (cache_dir / FILE_BYTE_HASH_FILE_NAME).write_text(hash_content)
     (cache_dir / SUMMARY_FILE_NAME).write_text(summary_content)
     (cache_dir / LAST_MODIFIED_FILE_NAME).write_text(last_modified_str)
 
@@ -520,8 +479,9 @@ def test_build_pazufa_dokument_happy_path(tmp_path: Path, plpr_data: dict[str, A
 
     assert result is not None
     assert result.volltext == text_content
-    assert result.hash_ == hash_content
-    assert result.zusammenfassung == summary_content
+    assert isinstance(result.zusammenfassung, list)
+    assert len(result.zusammenfassung) == 1
+    assert result.zusammenfassung[0].inhalt == summary_content
     assert result.link == str(url)
 
     assert result.zp_modifiziert == datetime(2024, 5, 10, tzinfo=UTC)

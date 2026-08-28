@@ -33,7 +33,7 @@ def base_vorgang_data() -> dict[str, Any]:
         "ReihNr": 0,
         "VNr": "V123/2024",
         "VIR": "IR123",
-        "VSys": ["Sys1"],
+        "VSys": ["1000"],
         "VSysL": ["System 1"],
     }
 

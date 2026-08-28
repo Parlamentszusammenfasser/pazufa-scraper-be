@@ -4,10 +4,11 @@ import logging
 import re
 import uuid
 from typing import Self, cast
+from uuid import UUID
 
-from pazufa_corelib.api_client.models import Dokument, Station, VgIdent, Vorgang, Vorgangstyp
+from pazufa_corelib.api_client.models import Dokument, Ressort, Sachgebiet, Station, VgIdent, Vorgang, Vorgangstyp
 from pazufa_corelib.api_client.models import Vorgang as PaZuFaVorgang
-from pazufa_corelib.api_client.types import UNSET
+from pazufa_corelib.api_client.types import UNSET, Unset
 from scrapy.exceptions import DropItem
 
 from pazufa_scraper_be.constants import ANGENOMMEN, VERTAGT
@@ -96,6 +97,14 @@ def _get_links(vorgang: GesetzVorgang) -> list[str]:
     return [f"https://pardok.parlament-berlin.de/portala/vorgang/{vorgang.id}"]
 
 
+def _get_sachgebiete(vorgang: GesetzVorgang) -> list[Sachgebiet] | Unset:
+    return [Sachgebiet(sys) for sys in vorgang.sys] or UNSET
+
+
+def _get_ressort() -> Ressort | Unset | None:
+    return UNSET
+
+
 class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
     """Pipeline that converts a GesetzVorgang into a PaZuFa Vorgang API model."""
 
@@ -149,7 +158,7 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
                 zp_modifiziert=zp_modifiziert,
                 gremium=gremium,
                 typ=station_typ,
-                dokumente=cast("list[Dokument | str]", dok_container.pazufa),
+                dokumente=cast("list[Dokument | UUID]", dok_container.pazufa),
                 titel=dok_container.pardok.typ_l or UNSET,
                 gremium_federf=gremium_federf,
                 schlagworte=schlagworte,
@@ -183,6 +192,8 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
             stationen=stationen,
             ids=_get_ids(vorgang=vorgang),
             links=_get_links(vorgang=vorgang),
+            sachgebiete=_get_sachgebiete(vorgang=vorgang),
+            ressort=_get_ressort(),
             # NOTE: Following should be revisited
             verfassungsaendernd=False,
             kurztitel=UNSET,

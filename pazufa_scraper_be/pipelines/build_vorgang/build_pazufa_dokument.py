@@ -5,12 +5,13 @@ import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from pazufa_corelib.api_client.models import Autor, Doktyp
+from pazufa_corelib.api_client.models import Autor, Doktyp, DokumentHash, HashStrategy, Mime, Zusammenfassungstupel
 from pazufa_corelib.api_client.models import Dokument as PaZuFaDokument
 from pazufa_corelib.api_client.types import UNSET, Unset
+from pazufa_corelib.normalization import hash_bytes, hash_text
 
 from pazufa_scraper_be.constants import (
-    FILE_BYTE_HASH_FILE_NAME,
+    DOKUMENT_FILE_NAME,
     LAST_MODIFIED_FILE_NAME,
     SUMMARY_FILE_NAME,
     TEXT_FILE_NAME,
@@ -81,6 +82,22 @@ def _get_drucksnr(dokument: BaseGesetzDokument, dokument_cache_dir: Path | None)
         return f"{dokument.h_nr}/{dokument.jg}"
 
     return ""
+
+
+def _compute_and_get_hashes(dokument_file: Path, text_file: Path) -> list[DokumentHash]:
+    document_hashes = [(Mime.APPLICATIONPDF, x) for x in hash_bytes(dokument_file.read_bytes())]
+    text_hash = (Mime.TEXTPLAIN, hash_text(text_file.read_text()))
+    hashes = [*document_hashes, text_hash]
+
+    return [DokumentHash(mime=mime, strategy=HashStrategy(type_), value=content) for mime, (content, type_) in hashes]
+
+
+def _get_zusammenfassung(summary_file: Path) -> list[Zusammenfassungstupel] | Unset:
+    if not summary_file.exists():
+        return UNSET
+
+    summary = summary_file.read_text()
+    return [Zusammenfassungstupel(inhalt=summary, typ="full-llm")]
 
 
 _APR_SUFFIX_LABELS: dict[ProtokollTyp, str] = {
@@ -193,15 +210,6 @@ def _check_text_file(dokument: AnyGesetzDokument, text_file: Path) -> bool:
     return text_file_missing
 
 
-def _check_hash_file(dokument: AnyGesetzDokument, file_byte_hash_file: Path) -> bool:
-    hash_file_missing = not file_byte_hash_file.exists()
-
-    if hash_file_missing:
-        msg = f"[{dokument.vorgang.id} - {dokument.id}]: Hash file does not exist, ignoring Dokument."
-        logger.warning(msg)
-    return hash_file_missing
-
-
 def _check_summary_file(dokument: AnyGesetzDokument, summary_file: Path) -> bool:
     summary_file_missing = not summary_file.exists()
 
@@ -217,22 +225,17 @@ def build_pazufa_dokument(dokument: AnyGesetzDokument, dokument_cache_dir: Path 
     if dokument_cache_dir is None:
         return None
 
+    dokument_file = dokument_cache_dir / DOKUMENT_FILE_NAME
     text_file = dokument_cache_dir / TEXT_FILE_NAME
     summary_file = dokument_cache_dir / SUMMARY_FILE_NAME
-    file_byte_hash_file = dokument_cache_dir / FILE_BYTE_HASH_FILE_NAME
 
     text_file_missing = _check_text_file(dokument, text_file)
-    hash_file_missing = _check_hash_file(dokument, file_byte_hash_file)
+    _check_summary_file(dokument=dokument, summary_file=summary_file)
 
-    if text_file_missing or hash_file_missing:
+    if text_file_missing:
         return None
 
-    summary_file_missing = _check_summary_file(dokument, summary_file)
-
     volltext = text_file.read_text()
-    hash_ = file_byte_hash_file.read_text()
-    zusammenfassung = UNSET if summary_file_missing else summary_file.read_text()
-
     zp_erstellt, zp_referenz, zp_modifiziert = _get_zeitpunkte(dokument, dokument_cache_dir)
 
     return PaZuFaDokument(
@@ -243,10 +246,10 @@ def build_pazufa_dokument(dokument: AnyGesetzDokument, dokument_cache_dir: Path 
         zp_referenz=zp_referenz,
         zp_modifiziert=zp_modifiziert,
         link=str(url),
-        hash_=hash_,
+        hash_=_compute_and_get_hashes(dokument_file=dokument_file, text_file=text_file),
         autoren=_get_autoren(dokument),
         drucksnr=_get_drucksnr(dokument, dokument_cache_dir),
-        zusammenfassung=zusammenfassung,
+        zusammenfassung=_get_zusammenfassung(summary_file=summary_file),
         schlagworte=_get_schlagworte(dokument),
         # NOTE: Following should be revisited
         kurztitel=UNSET,

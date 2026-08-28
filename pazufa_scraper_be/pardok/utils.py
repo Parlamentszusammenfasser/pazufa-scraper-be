@@ -51,3 +51,4 @@ def ignore_invalid_factory(cls: type[BaseModel]) -> Callable[..., list]:
 
 GermanDate = Annotated[datetime, BeforeValidator(parse_german_date)]
 CoercedStrList = Annotated[list[str], BeforeValidator(ensure_list)]
+CoercedIntList = Annotated[list[int], BeforeValidator(ensure_list)]

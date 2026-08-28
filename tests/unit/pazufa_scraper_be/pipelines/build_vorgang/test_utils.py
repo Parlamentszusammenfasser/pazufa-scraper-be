@@ -141,7 +141,7 @@ def make_station() -> Callable[..., Station]:
     def _make(typ: Stationstyp, **overrides: dict[str, Any]) -> Station:
         defaults: dict[str, Any] = {
             "zp_start": datetime.datetime.now(tz=datetime.UTC),
-            "gremium": Gremium(Parlament.BE, 19, "Plenum"),
+            "gremium": Gremium(parlament=Parlament.BE, wahlperiode=19, name="Plenum"),
             "typ": typ,
             "dokumente": [],
         }

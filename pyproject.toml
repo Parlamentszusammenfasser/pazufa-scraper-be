@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Sebastian Jäger", email = "git@sebastian-jaeger.me" }]
 dependencies = [
-  "pazufa-corelib>=0.1.2",
+  "pazufa-corelib>=0.2.1",
   "pydantic>=2.13.4",
   "python-magic>=0.4.27",
   "scrapy>=2.16.0",

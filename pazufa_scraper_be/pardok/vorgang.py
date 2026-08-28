@@ -7,7 +7,7 @@ from typing import Annotated
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from pazufa_scraper_be.pardok.dokument import AnyGesetzDokument, parse_dokument
-from pazufa_scraper_be.pardok.utils import CoercedStrList, ensure_list, ignore_invalid_factory
+from pazufa_scraper_be.pardok.utils import CoercedIntList, CoercedStrList, ensure_list, ignore_invalid_factory
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class GesetzVorgang(BaseModel):
     id: str = Field(alias="VID")
     reih_nr: int = Field(alias="ReihNr", ge=0, lt=1)
     nr: str = Field(alias="VNr")
-    sys: CoercedStrList = Field(alias="VSys", default_factory=list)
+    sys: CoercedIntList = Field(alias="VSys", default_factory=list)
     sys_l: CoercedStrList = Field(alias="VSysL", default_factory=list)
     ir: str = Field(alias="VIR")
     nebeneintraege: Annotated[
