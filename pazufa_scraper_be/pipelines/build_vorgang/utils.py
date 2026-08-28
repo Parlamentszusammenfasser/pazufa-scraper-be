@@ -68,7 +68,7 @@ def get_station_typ_and_gremium(dok_container: DokumentContainer) -> tuple[Stati
                 break
 
         if bool(re.search("federführend", gremium_name, flags=re.IGNORECASE)):
-            gremium_name = re.sub(r" \(federführend\)", "", gremium_name, flags=re.IGNORECASE).strip()
+            gremium_name = re.sub(r"\s*\(federführend\)", "", gremium_name, flags=re.IGNORECASE).strip()
             gremium_federf = True
 
         else:

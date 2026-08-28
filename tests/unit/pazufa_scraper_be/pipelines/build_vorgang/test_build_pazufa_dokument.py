@@ -218,6 +218,9 @@ def test_get_titel_generic_fallback_with_nr(plpr_data: dict[str, Any]) -> None:
     ("input_text", "expected_text"),
     [
         ("Author Name", "Author Name"),
+        ("Author Name(federführend)", "Author Name"),
+        ("Author Name  (federführend)", "Author Name"),
+        ("Author Name	(federführend)", "Author Name"),
         ("Author Name (federführend)", "Author Name"),
         ("Author Name (FEDERFÜHREND)", "Author Name"),
         (" Author Name (federführend) ", "Author Name"),

@@ -88,6 +88,14 @@ RULES = [
 ]
 
 
+def _get_ids(vorgang: GesetzVorgang) -> list[VgIdent]:
+    return [VgIdent(id=vorgang.id, typ="vorgnr"), VgIdent(id=vorgang.dokumente[0].id, typ="initdrucks")]
+
+
+def _get_links(vorgang: GesetzVorgang) -> list[str]:
+    return [f"https://pardok.parlament-berlin.de/portala/vorgang/{vorgang.id}"]
+
+
 class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
     """Pipeline that converts a GesetzVorgang into a PaZuFa Vorgang API model."""
 
@@ -173,8 +181,8 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
             typ=Vorgangstyp.GG_LAND_PARL,
             initiatoren=initiatoren,
             stationen=stationen,
-            ids=[VgIdent(id=vorgang.id, typ="vorgnr")],
-            links=[f"https://pardok.parlament-berlin.de/portala/vorgang/{vorgang.id}"],
+            ids=_get_ids(vorgang=vorgang),
+            links=_get_links(vorgang=vorgang),
             # NOTE: Following should be revisited
             verfassungsaendernd=False,
             kurztitel=UNSET,
