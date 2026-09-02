@@ -13,6 +13,8 @@ import os
 import uuid
 from pathlib import Path
 
+from pazufa_scraper_be.extensions.mattermost import MattermostNotifier
+from pazufa_scraper_be.extensions.temp_error_dir import TempErrorDirectory
 from pazufa_scraper_be.pipelines import (
     BuildPaZuFaVorgang,
     DownloadAndCacheDocuments,
@@ -79,7 +81,8 @@ ITEM_PIPELINES = {
 }
 
 EXTENSIONS = {
-    "pazufa_scraper_be.mattermost.MattermostNotifier": 500,
+    MattermostNotifier: 500,
+    TempErrorDirectory: 600,
 }
 
 # Enable and configure HTTP caching (disabled by default)

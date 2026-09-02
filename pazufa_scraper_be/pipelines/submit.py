@@ -1,8 +1,10 @@
+import json
 import logging
 from datetime import UTC, datetime
 from http import HTTPStatus
 from typing import Self
 
+from anyio import Path
 from pazufa_corelib.api_client.api.vorgang import vorgang_put
 from pazufa_corelib.api_client.models.vorgang import Vorgang
 from scrapy.exceptions import DropItem
@@ -46,3 +48,12 @@ class SubmitVorgang(ApiPipeline, StatsPipeline):
                 else:
                     self.increment_stats(VorgangCounter.submit_rejected_code(response.status_code))
                     logger.warning(msg)
+
+                    # NOTE: For convenience, we save the failed submissions as JSON files into a temp dir.
+                    # We were asked multiple times to supply these to the backend devs, so we make this code persistent now
+                    temp_error_directory = self.crawler.stats.get_value("temp_error_directory")
+                    error_dir = Path(temp_error_directory) / f"{response.status_code}"
+                    await error_dir.mkdir(parents=True, exist_ok=True)
+
+                    error_file = error_dir / f"{id_}.json"
+                    await error_file.write_text(json.dumps(vorgang.to_dict(), indent=2))

@@ -9,7 +9,7 @@ import pytest
 from scrapy import signals
 from scrapy.statscollectors import StatsCollector
 
-from pazufa_scraper_be.mattermost import MattermostNotifier, _build_payload
+from pazufa_scraper_be.extensions.mattermost import MattermostNotifier, _build_payload
 
 VALID_BACKENDS = ["http://localhost:8080", "https://staging.api.pazufa.de", "https://api.pazufa.de"]
 INVALID_BACKENDS = ["localhost:8080", "staging.api.pazufa.de", "api.pazufa.de", ""]
@@ -310,7 +310,7 @@ def test_notify_mattermost_success(valid_crawler: MagicMock, full_stats_w_submit
         notifier = MattermostNotifier(valid_crawler)
         valid_crawler.stats = full_stats_w_submit
 
-        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+        with patch("pazufa_scraper_be.extensions.mattermost.httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
@@ -336,14 +336,14 @@ def test_notify_mattermost_http_error(valid_crawler: MagicMock, full_stats_w_sub
         notifier = MattermostNotifier(valid_crawler)
         valid_crawler.stats = full_stats_w_submit
 
-        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+        with patch("pazufa_scraper_be.extensions.mattermost.httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
             mock_client.post.side_effect = httpx.HTTPError("Network error")
             mock_client_class.return_value = mock_client
 
-            with patch("pazufa_scraper_be.mattermost.logger") as mock_logger:
+            with patch("pazufa_scraper_be.extensions.mattermost.logger") as mock_logger:
                 await notifier._notify_mattermost()
                 mock_logger.exception.assert_called_once_with("Failed to notify Mattermost.")
 
@@ -357,14 +357,14 @@ def test_notify_mattermost_timeout_error(valid_crawler: MagicMock, full_stats_w_
         notifier = MattermostNotifier(valid_crawler)
         valid_crawler.stats = full_stats_w_submit
 
-        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+        with patch("pazufa_scraper_be.extensions.mattermost.httpx.AsyncClient") as mock_client_class:
             mock_client = AsyncMock()
             mock_client.__aenter__.return_value = mock_client
             mock_client.__aexit__.return_value = None
             mock_client.post.side_effect = httpx.TimeoutException("Request timeout")
             mock_client_class.return_value = mock_client
 
-            with patch("pazufa_scraper_be.mattermost.logger") as mock_logger:
+            with patch("pazufa_scraper_be.extensions.mattermost.logger") as mock_logger:
                 await notifier._notify_mattermost()
                 mock_logger.exception.assert_called_once_with("Failed to notify Mattermost.")
 
@@ -378,7 +378,7 @@ def test_notify_mattermost_skips_when_stats_none(valid_crawler: MagicMock) -> No
         notifier = MattermostNotifier(valid_crawler)
         valid_crawler.stats = None
 
-        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+        with patch("pazufa_scraper_be.extensions.mattermost.httpx.AsyncClient") as mock_client_class:
             await notifier._notify_mattermost()
             mock_client_class.assert_not_called()
 
@@ -399,7 +399,7 @@ def test_notify_mattermost_skips_when_backend_host_none(make_crawler: Callable[.
         notifier = MattermostNotifier(crawler)
         crawler.stats = full_stats_w_submit
 
-        with patch("pazufa_scraper_be.mattermost.httpx.AsyncClient") as mock_client_class:
+        with patch("pazufa_scraper_be.extensions.mattermost.httpx.AsyncClient") as mock_client_class:
             await notifier._notify_mattermost()
             mock_client_class.assert_not_called()
 

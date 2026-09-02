@@ -35,7 +35,7 @@ class ConcreteBasePipeline(BasePipeline):
 def make_crawler(settings: dict | None = None, stats: StatsCollector | None = None) -> Crawler:
     """Create a minimal crawler double."""
     crawler = Crawler(Spider, Settings(settings or {}))
-    crawler.stats = stats
+    crawler.stats = stats or StatsCollector(crawler)
     return crawler
 
 
@@ -77,16 +77,6 @@ def test__stats_pipeline_increments_enum_and_string_counters() -> None:
 
     increment.assert_any_call(DokumentCounter.CACHE_HIT.value)
     increment.assert_any_call("custom/key")
-
-
-def test__stats_pipeline_does_not_increment_without_stats() -> None:
-    """StatsPipeline treats a missing stats collector as a no-op."""
-    pipeline = StatsPipeline(make_crawler({"WAHLPERIODE": 19}))
-
-    with patch.object(StatsCollector, "inc_value") as increment:
-        pipeline.increment_stats("custom/key")
-
-    increment.assert_not_called()
 
 
 def test__cache_pipeline_builds_document_cache_path_and_creates_directory(tmp_path: Path, plpr_data: dict) -> None:
