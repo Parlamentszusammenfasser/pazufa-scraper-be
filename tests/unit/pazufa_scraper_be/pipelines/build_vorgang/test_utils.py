@@ -283,7 +283,7 @@ def test__merge_vorgang_and_station_schlagworte__vorgang_only(plpr_data: dict[st
     dok = _make_pazufa_dokument(schlagworte=None)
     container = _make_dok_container(plpr_data, [dok])
     result = merge_vorgang_and_station_schlagworte(["Klimaschutz", "Energie"], container)
-    assert result == ["Klimaschutz", "Energie"]
+    assert result == ["Energie", "Klimaschutz"]
 
 
 def test__merge_vorgang_and_station_schlagworte__dok_only(plpr_data: dict[str, Any]) -> None:

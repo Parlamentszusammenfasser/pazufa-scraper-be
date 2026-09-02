@@ -29,14 +29,14 @@ class DokumentContainer:
 
 def get_vorgang_schlagworte(vorgang: GesetzVorgang) -> list[str] | None:
     """Get Schlagworte from Vorgang's Nebeneinträge."""
-    return list({n.desk for n in vorgang.nebeneintraege}) or None
+    schlagworte = sorted({n.desk for n in vorgang.nebeneintraege})
+    return schlagworte or None
 
 
 def merge_vorgang_and_station_schlagworte(vorgang_schlagworte: list[str] | None, dok_container: DokumentContainer) -> list[str] | Unset:
     """Merge vorgang schlagworte with schlagworte of this station's documents schlagworte (deduplicated)."""
-    station_doks_schlagworte = {schlagwort for dok in dok_container.pazufa for schlagwort in dok.schlagworte or [] if schlagwort}
-    schlagworte = vorgang_schlagworte or []
-    schlagworte += list(station_doks_schlagworte) or []
+    station_doks_schlagworte = sorted({schlagwort for dok in dok_container.pazufa for schlagwort in dok.schlagworte or [] if schlagwort})
+    schlagworte = sorted((vorgang_schlagworte or []) + station_doks_schlagworte)
 
     if not schlagworte:
         schlagworte = UNSET
