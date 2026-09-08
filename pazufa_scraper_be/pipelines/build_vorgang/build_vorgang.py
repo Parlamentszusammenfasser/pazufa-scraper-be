@@ -154,6 +154,7 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
             schlagworte = merge_vorgang_and_station_schlagworte(vorgang_schlagworte, dok_container)
 
             station = Station(
+                api_id=uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), f"Station-{dok_container.pardok.id}"),
                 zp_start=zp_start,
                 zp_modifiziert=zp_modifiziert,
                 gremium=gremium,
@@ -172,6 +173,7 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
             if dok_container.pardok.abstract is not None and (
                 new_station := check_and_create_vote_outcome_station(station=station, dok_abstract=dok_container.pardok.abstract)
             ):
+                new_station.api_id = uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), f"Station-{dok_container.pardok.id}-{new_station.typ}")
                 stationen.append(new_station)
 
         dokument = stationen[0].dokumente[0]
