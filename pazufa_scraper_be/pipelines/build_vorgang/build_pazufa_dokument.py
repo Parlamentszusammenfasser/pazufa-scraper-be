@@ -17,7 +17,8 @@ from pazufa_scraper_be.constants import (
     TEXT_FILE_NAME,
 )
 from pazufa_scraper_be.pardok import APrDokument, BaseGesetzDokument, DokTyp, DrsDokument, GVBlDokument, PlPrDokument
-from pazufa_scraper_be.pardok.dokument import AnyGesetzDokument, DeskTitelSbMixin, DokArt, ProtokollTyp
+from pazufa_scraper_be.pardok.dokument import AnyGesetzDokument, DokArt, ProtokollTyp
+from pazufa_scraper_be.pipelines.build_vorgang.utils import get_document_schlagworte
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -43,21 +44,13 @@ _PARDOK_PAZUFA_DOKTYP_MAPPING = {
     (DokArt.APr, DokTyp.BeschlEmpf): Doktyp.BESCHLUSSEMPF,
     (DokArt.Drs, DokTyp.BeschlEmpf): Doktyp.BESCHLUSSEMPF,
     # Gesetzesblatt
-    (DokArt.GVBl, DokTyp.GVBl): Doktyp.SONSTIG,
+    (DokArt.GVBl, DokTyp.GVBl): Doktyp.GESETZ,
     (DokArt.GVBl, DokTyp.Bekannt_GVBl): Doktyp.SONSTIG,
-    (DokArt.GVBl, DokTyp.Neufassung): Doktyp.SONSTIG,
+    (DokArt.GVBl, DokTyp.Neufassung): Doktyp.GESETZ,
     # Verschiedenes
     (DokArt.Drs, DokTyp.AendAntr): Doktyp.ANTRAG,
     (DokArt.Drs, DokTyp.Antr): Doktyp.ANTRAG,
 }
-
-
-def _get_schlagworte(dokument: BaseGesetzDokument) -> list[str] | Unset:
-    schlagworte = UNSET
-    if isinstance(dokument, DeskTitelSbMixin):
-        schlagworte = [dokument.desk] if dokument.desk else UNSET
-
-    return schlagworte
 
 
 def _get_typ(dokument: BaseGesetzDokument) -> Doktyp:
@@ -250,7 +243,7 @@ def build_pazufa_dokument(dokument: AnyGesetzDokument, dokument_cache_dir: Path 
         autoren=_get_autoren(dokument),
         drucksnr=_get_drucksnr(dokument, dokument_cache_dir),
         zusammenfassung=_get_zusammenfassung(summary_file=summary_file),
-        schlagworte=_get_schlagworte(dokument),
+        schlagworte=get_document_schlagworte(dokument),
         # NOTE: Following should be revisited
         kurztitel=UNSET,
         vorwort=UNSET,

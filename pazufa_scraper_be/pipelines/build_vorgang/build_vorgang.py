@@ -27,10 +27,11 @@ from pazufa_scraper_be.pipelines.build_vorgang.rules import (
 from pazufa_scraper_be.pipelines.build_vorgang.utils import (
     DokumentContainer,
     check_and_create_vote_outcome_station,
+    get_document_schlagworte,
     get_station_typ_and_gremium,
     get_station_zeitpunkte,
     get_vorgang_schlagworte,
-    merge_vorgang_and_station_schlagworte,
+    uniqify,
 )
 from pazufa_scraper_be.pipelines.stats_counter import VorgangCounter
 
@@ -89,6 +90,16 @@ RULES = [
 ]
 
 
+def _merge_schlagworte(document_schlagworte: list[str] | Unset, vorgang_schlagworte: list[str] | Unset) -> list[str] | Unset:
+    """Merge vorgang schlagworte with schlagworte of this document schlagworte (deduplicated)."""
+    schlagworte = uniqify((document_schlagworte or []) + (vorgang_schlagworte or []))
+
+    if not schlagworte:
+        schlagworte = UNSET
+
+    return schlagworte
+
+
 def _get_ids(vorgang: GesetzVorgang) -> list[VgIdent]:
     return [VgIdent(id=vorgang.id, typ="vorgnr"), VgIdent(id=vorgang.dokumente[0].id, typ="initdrucks")]
 
@@ -145,13 +156,10 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
             msg = f"[{vorgang.id}]: Could not create any Stations."
             raise DropItem(msg)
 
-        vorgang_schlagworte = get_vorgang_schlagworte(vorgang)
         stationen: list[Station] = []
         for dok_container in dok_containers:
             station_typ, (gremium, gremium_federf) = get_station_typ_and_gremium(dok_container)
             zp_start, zp_modifiziert = get_station_zeitpunkte(dok_container)
-
-            schlagworte = merge_vorgang_and_station_schlagworte(vorgang_schlagworte, dok_container)
 
             station = Station(
                 api_id=uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), f"Station-{dok_container.pardok.id}"),
@@ -162,7 +170,6 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
                 dokumente=cast("list[Dokument | UUID]", dok_container.pazufa),
                 titel=dok_container.pardok.typ_l or UNSET,
                 gremium_federf=gremium_federf,
-                schlagworte=schlagworte,
                 # NOTE: Following should be revisited
                 link=UNSET,
                 additional_links=UNSET,
@@ -185,6 +192,8 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
             msg = f"[{vorgang.id}]: Could not create titel and autoren."
             raise DropItem(msg)
 
+        vorgang_schlagworte = get_vorgang_schlagworte(vorgang)
+        document_schlagworte = get_document_schlagworte(dok_containers[0].pardok)
         return Vorgang(
             api_id=uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), vorgang.id),
             titel=titel,
@@ -196,6 +205,7 @@ class BuildPaZuFaVorgang(CacheDirPipeline, StatsPipeline):
             links=_get_links(vorgang=vorgang),
             sachgebiete=_get_sachgebiete(vorgang=vorgang),
             ressort=_get_ressort(),
+            schlagworte=_merge_schlagworte(document_schlagworte=document_schlagworte, vorgang_schlagworte=vorgang_schlagworte),
             # NOTE: Following should be revisited
             verfassungsaendernd=False,
             kurztitel=UNSET,

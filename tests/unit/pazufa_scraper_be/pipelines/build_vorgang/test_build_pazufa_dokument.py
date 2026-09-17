@@ -35,7 +35,6 @@ from pazufa_scraper_be.pipelines.build_vorgang.build_pazufa_dokument import (
     _clean_urheber,
     _get_autoren,
     _get_drucksnr,
-    _get_schlagworte,
     _get_titel,
     _get_typ,
     _get_zeitpunkte,
@@ -70,9 +69,9 @@ def gesetz_vorgang_data() -> dict[str, Any]:
         (DokArt.APr, DokTyp.BeschlEmpf, PaZuFa_DokTyp.BESCHLUSSEMPF),
         (DokArt.Drs, DokTyp.BeschlEmpf, PaZuFa_DokTyp.BESCHLUSSEMPF),
         # Gesetzesblatt
-        (DokArt.GVBl, DokTyp.GVBl, PaZuFa_DokTyp.SONSTIG),
+        (DokArt.GVBl, DokTyp.GVBl, PaZuFa_DokTyp.GESETZ),
         (DokArt.GVBl, DokTyp.Bekannt_GVBl, PaZuFa_DokTyp.SONSTIG),
-        (DokArt.GVBl, DokTyp.Neufassung, PaZuFa_DokTyp.SONSTIG),
+        (DokArt.GVBl, DokTyp.Neufassung, PaZuFa_DokTyp.GESETZ),
         # Verschiedenes
         (DokArt.Drs, DokTyp.AendAntr, PaZuFa_DokTyp.ANTRAG),
         (DokArt.Drs, DokTyp.Antr, PaZuFa_DokTyp.ANTRAG),
@@ -485,47 +484,3 @@ def test_build_pazufa_dokument_happy_path(tmp_path: Path, plpr_data: dict[str, A
     assert result.link == str(url)
 
     assert result.zp_modifiziert == datetime(2024, 5, 10, tzinfo=UTC)
-
-
-@pytest.mark.parametrize(
-    "dok_fixture",
-    ["drs_data", "gvbl_data"],
-)
-def test__get_schlagworte__desk_present(request: pytest.FixtureRequest, base_vorgang_data: dict[str, Any], dok_fixture: str) -> None:
-    """Returns a single-element list when DeskTitelSbMixin document has a non-empty Desk."""
-    dok_data = request.getfixturevalue(dok_fixture)
-    vorgang_data = build_gesetz_vorgang_data(base_vorgang_data=base_vorgang_data, dok_datas=[dok_data], neben_eintrag_data=[])
-    vorgang = GesetzVorgang.model_validate(vorgang_data)
-    dokument = vorgang.dokumente[0]
-
-    result = _get_schlagworte(dokument)
-
-    assert result == [dok_data["Desk"]]
-
-
-@pytest.mark.parametrize(
-    "dok_fixture",
-    ["drs_data", "gvbl_data"],
-)
-def test__get_schlagworte__desk_none_returns_unset(request: pytest.FixtureRequest, base_vorgang_data: dict[str, Any], dok_fixture: str) -> None:
-    """Returns UNSET when DeskTitelSbMixin document has Desk=None."""
-    dok_data = {**request.getfixturevalue(dok_fixture), "Desk": None}
-    vorgang_data = build_gesetz_vorgang_data(base_vorgang_data=base_vorgang_data, dok_datas=[dok_data], neben_eintrag_data=[])
-    vorgang = GesetzVorgang.model_validate(vorgang_data)
-    dokument = vorgang.dokumente[0]
-
-    assert _get_schlagworte(dokument) is UNSET
-
-
-@pytest.mark.parametrize(
-    "dok_fixture",
-    ["plpr_data", "apr_data"],
-)
-def test__get_schlagworte__no_mixin_returns_unset(request: pytest.FixtureRequest, base_vorgang_data: dict[str, Any], dok_fixture: str) -> None:
-    """Returns UNSET for documents that do not inherit DeskTitelSbMixin (PlPr, APr)."""
-    dok_data = request.getfixturevalue(dok_fixture)
-    vorgang_data = build_gesetz_vorgang_data(base_vorgang_data=base_vorgang_data, dok_datas=[dok_data], neben_eintrag_data=[])
-    vorgang = GesetzVorgang.model_validate(vorgang_data)
-    dokument = vorgang.dokumente[0]
-
-    assert _get_schlagworte(dokument) is UNSET

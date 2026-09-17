@@ -36,7 +36,6 @@ show_missing = true
 line-length = 160
 target-version = "py312"
 fix = true
-extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = [

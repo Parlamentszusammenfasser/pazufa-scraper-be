@@ -12,8 +12,10 @@ from pazufa_corelib.api_client.types import UNSET, Unset
 
 from pazufa_scraper_be.constants import ABGELEHNT, ANGENOMMEN, ZURUECKGEZOGEN, ZUSTIMMUNG
 from pazufa_scraper_be.pardok import APrDokument, BaseGesetzDokument, DrsDokument, GesetzVorgang, GVBlDokument, PlPrDokument
+from pazufa_scraper_be.pardok.dokument import DeskTitelSbMixin
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -27,21 +29,31 @@ class DokumentContainer:
     pazufa: list[PaZuFaDokument]
 
 
-def get_vorgang_schlagworte(vorgang: GesetzVorgang) -> list[str] | None:
-    """Get Schlagworte from Vorgang's Nebeneinträge."""
-    schlagworte = sorted({n.desk for n in vorgang.nebeneintraege})
-    return schlagworte or None
+def uniqify(sequence: Sequence) -> list:
+    """Fast way to remove duplicates from a sequence (list) but keep order.
+
+    See:
+    - https://stackoverflow.com/a/480227
+    - https://www.peterbe.com/plog/uniqifiers-benchmark
+    """
+    seen = set()
+    seen_add = seen.add
+    return [x for x in sequence if not (x in seen or seen_add(x))]  # ty: ignore[redundant-condition] NOTE: this is fine because we want to call that function inline
 
 
-def merge_vorgang_and_station_schlagworte(vorgang_schlagworte: list[str] | None, dok_container: DokumentContainer) -> list[str] | Unset:
-    """Merge vorgang schlagworte with schlagworte of this station's documents schlagworte (deduplicated)."""
-    station_doks_schlagworte = sorted({schlagwort for dok in dok_container.pazufa for schlagwort in dok.schlagworte or [] if schlagwort})
-    schlagworte = sorted((vorgang_schlagworte or []) + station_doks_schlagworte)
-
-    if not schlagworte:
-        schlagworte = UNSET
+def get_document_schlagworte(dokument: BaseGesetzDokument) -> list[str] | Unset:
+    """Get Schlagworte from Dokument's Nebeneinträge."""
+    schlagworte = UNSET
+    if isinstance(dokument, DeskTitelSbMixin):
+        schlagworte = uniqify([dokument.desk]) if dokument.desk else UNSET
 
     return schlagworte
+
+
+def get_vorgang_schlagworte(vorgang: GesetzVorgang) -> list[str] | Unset:
+    """Get Schlagworte from Vorgang's Nebeneinträge."""
+    schlagworte = uniqify([n.desk for n in vorgang.nebeneintraege])
+    return schlagworte or UNSET
 
 
 def get_station_typ_and_gremium(dok_container: DokumentContainer) -> tuple[Stationstyp, tuple[Gremium, bool | Unset]]:
