@@ -1,4 +1,7 @@
+from pathlib import Path
+
 DOK_CACHE_HISTORY_SUB_DIR_NAME = ".history"
+DOK_CACHE_HISTORY_SUB_DIR_PATH = Path(".history")
 DOK_BASE_URL = "https://pardok.parlament-berlin.de/starweb/adis/citat/VT"
 
 

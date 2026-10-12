@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 authors = [{ name = "Sebastian Jäger", email = "git@sebastian-jaeger.me" }]
 dependencies = [
-  "pazufa-corelib>=0.2.1",
+  "pazufa-corelib>=0.3.0",
   "pydantic>=2.13.4",
   "python-magic>=0.4.27",
   "scrapy>=2.16.0",
@@ -59,7 +59,11 @@ ignore = [
   "F401",  # Unused imports in __init__ files can make sense
 ]
 "tests/*" = [
-  "SLF001"  # allow private member access
+  "SLF001",  # allow private member access
+  "DTZ001",  # datetime without tzinfo - intentional for testing
+  "DTZ005",  # datetime.now without tz - intentional for testing
+  "PLR2004",  # allow magic numbers
+  "FBT001",  # allow boolean positional argument
 ]
 
 [tool.ruff.lint.pydocstyle]
