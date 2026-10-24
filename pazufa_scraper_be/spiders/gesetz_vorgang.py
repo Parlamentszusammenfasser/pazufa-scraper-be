@@ -23,7 +23,7 @@ class GesetzVorgangSpider(scrapy.Spider):
         """Yield the initial request for the pardok XML feed."""
         yield Request(url=self.start_url_template.format(self.crawler.settings.getint("WAHLPERIODE")))
 
-    def parse(self, response: Response) -> Generator[dict | GesetzVorgang]:
+    def parse(self, response: Response) -> Generator[dict | GesetzVorgang]:  # ty: ignore[invalid-mutable-override]
         """Parse the XML feed response into GesetzVorgang items or error dicts."""
         if not isinstance(response, XmlResponse):
             msg = f"Expecting {XmlResponse} but got {type(response)}."
