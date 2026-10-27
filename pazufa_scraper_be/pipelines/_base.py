@@ -129,5 +129,5 @@ class LLMPipeline(BasePipeline):
             self.llm_connector = LLMConnector(model=self.llm_model_name, api_key=self._llm_token, timeout_seconds=llm_timeout)
 
         else:
-            msg = "LLM_TOKEN is not set. Skipping Document summarization."
+            msg = "LLM_TOKEN is not set. Skipping LLM usage."
             logger.info(msg)

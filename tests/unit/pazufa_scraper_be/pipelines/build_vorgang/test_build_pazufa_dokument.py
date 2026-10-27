@@ -63,9 +63,6 @@ def gesetz_vorgang_data() -> dict[str, Any]:
         (DokArt.PlPr, DokTyp.Lesung_I, PaZuFa_DokTyp.REDEPROTOKOLL),
         (DokArt.PlPr, DokTyp.Lesung_II, PaZuFa_DokTyp.REDEPROTOKOLL),
         # Ausschussberatung und Beschlussempfehlung
-        (DokArt.APr, DokTyp.Ausschussberatung, PaZuFa_DokTyp.REDEPROTOKOLL),
-        (DokArt.APr, DokTyp.ABespr_Par_21_Abs_3_GO, PaZuFa_DokTyp.REDEPROTOKOLL),
-        (DokArt.APr, DokTyp.APr, PaZuFa_DokTyp.REDEPROTOKOLL),
         (DokArt.APr, DokTyp.BeschlEmpf, PaZuFa_DokTyp.BESCHLUSSEMPF),
         (DokArt.Drs, DokTyp.BeschlEmpf, PaZuFa_DokTyp.BESCHLUSSEMPF),
         # Gesetzesblatt
@@ -77,18 +74,19 @@ def gesetz_vorgang_data() -> dict[str, Any]:
         (DokArt.Drs, DokTyp.Antr, PaZuFa_DokTyp.ANTRAG),
     ],
 )
-def test_get_typ(base_dok_data: dict[str, Any], dok_art: DokArt, dok_typ: DokTyp, expected_pazufa_typ: PaZuFa_DokTyp) -> None:
+def test_get_typ(tmp_path: Path, base_dok_data: dict[str, Any], dok_art: DokArt, dok_typ: DokTyp, expected_pazufa_typ: PaZuFa_DokTyp) -> None:
     """Verify mapping of (DokArt, DokTyp) to PaZuFa Doktyp for the mapped cases."""
     gesetz_dokument = BaseGesetzDokument.model_validate(base_dok_data)
     gesetz_dokument.art = dok_art
     gesetz_dokument.typ = dok_typ
+    cache = Cache(base_dir=tmp_path, name="document-folder")
 
-    actual_pazufa_typ = _get_typ(gesetz_dokument)
+    actual_pazufa_typ = _get_typ(gesetz_dokument, cache)
 
     assert actual_pazufa_typ == expected_pazufa_typ
 
 
-def test_get_typ_fallback(base_dok_data: dict[str, Any], base_vorgang_data: dict[str, Any], caplog: pytest.LogCaptureFixture) -> None:
+def test_get_typ_fallback(tmp_path: Path, base_dok_data: dict[str, Any], base_vorgang_data: dict[str, Any], caplog: pytest.LogCaptureFixture) -> None:
     """Verify mapping of (DokArt, DokTyp) to PaZuFa Doktyp for the fallback case."""
     # random (*promise*) non-mapped combination
     dok_art, dok_typ, expected_pazufa_typ = (DokArt.GVBl, DokTyp.Antr_GesEntw, PaZuFa_DokTyp.SONSTIG)
@@ -107,10 +105,11 @@ def test_get_typ_fallback(base_dok_data: dict[str, Any], base_vorgang_data: dict
     )
     gesetz_vorgang = GesetzVorgang.model_validate(gesetz_vorgang_data)
     gesetz_dokument.set_vorgang(gesetz_vorgang)
+    cache = Cache(base_dir=tmp_path, name="document-folder")
 
     caplog.set_level(logging.INFO)
 
-    actual_pazufa_typ = _get_typ(gesetz_dokument)
+    actual_pazufa_typ = _get_typ(gesetz_dokument, cache)
 
     assert actual_pazufa_typ == expected_pazufa_typ
     assert "Using fallback for DokTyp" in caplog.text
@@ -121,20 +120,17 @@ def test_get_typ_fallback(base_dok_data: dict[str, Any], base_vorgang_data: dict
     [
         ("drs_data", DrsDokument, "123/2024"),
         ("plpr_data", PlPrDokument, "123/2024"),
-        ("apr_data", APrDokument, "123/2024-wp"),
+        ("apr_data", APrDokument, "123/2024"),
         ("gvbl_data", GVBlDokument, "12345/2024"),
         ("base_dok_data", BaseGesetzDokument, ""),
     ],
 )
-def test_get_drucksnr(
-    tmp_path: Path, request: pytest.FixtureRequest, fixture_name: str, dokument_class: type[BaseGesetzDokument], expected_drucksnr: str
-) -> None:
+def test_get_drucksnr(request: pytest.FixtureRequest, fixture_name: str, dokument_class: type[BaseGesetzDokument], expected_drucksnr: str) -> None:
     """Verify Durchsachennummer assignment."""
     data = request.getfixturevalue(fixture_name)
     dokument = dokument_class.model_validate(data)
-    cache = Cache(base_dir=tmp_path, name=expected_drucksnr)
 
-    drucksnr = _get_drucksnr(dokument, cache=cache)
+    drucksnr = _get_drucksnr(dokument)
     assert drucksnr == expected_drucksnr
 
 

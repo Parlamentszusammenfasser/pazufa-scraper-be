@@ -13,13 +13,15 @@ class Key(_Key):
     """Keys for Cache."""
 
     URL = "URL"
-    DOCUMENT = "DOCUMENT"
     TEXT = "TEXT"
     SUMMARY = "SUMMARY"
+    DOCUMENT = "DOCUMENT"
+    SHORT_TITEL = "SHORT_TITEL"
     LAST_CHECKED = "LAST_CHECKED"
     DOWNLOAD_TIME = "DOWNLOAD_TIME"
     LAST_MODIFIED = "LAST_MODIFIED"
     SUMMARY_IGNORE = "SUMMARY_IGNORE"
+    SHORT_TITEL_IGNORE = "SHORT_TITEL_IGNORE"
 
 
 class Cache(_Cache[FileSystemBackend]):
@@ -65,7 +67,7 @@ class Cache(_Cache[FileSystemBackend]):
         self.backend.set_metadata(key=key, value_type=Value.TEXT, ttl=None)
 
     def reset(self: Self) -> None:
-        """Reset DocumentCache."""
+        """Reset Cache by moving all entries to subdirectory."""
         history_dir = self.backend.directory / DOK_CACHE_HISTORY_SUB_DIR_PATH
         history_dir.mkdir(parents=True, exist_ok=True)
 

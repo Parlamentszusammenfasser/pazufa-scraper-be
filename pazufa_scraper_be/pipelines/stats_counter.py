@@ -88,9 +88,23 @@ class SummaryCounter(StatsCounter):
     IGNORE = _SUMMARY + "/ignore"
 
 
+_SHORT_TITEL = PAZUFA + "/ShortTitel"
+_SHORT_TITEL_CACHE = _SHORT_TITEL + "/cache"
+
+
+class ShortTitelCounter(StatsCounter):
+    """Counters for LLM short titel cache operations."""
+
+    CACHE_HIT = _SHORT_TITEL_CACHE + "/hit"
+    CACHE_MISS = _SHORT_TITEL_CACHE + "/miss"
+    IGNORE = _SHORT_TITEL + "/ignore"
+
+
 _LLM = PAZUFA + "/LLM"
 _LLM_SUMMARIZE = _LLM + "/summarize"
 _LLM_SUMMARIZE_FAILED = _LLM_SUMMARIZE + "/failed"
+_LLM_SHORT_TITEL = _LLM + "/short_titel"
+_LLM_SHORT_TITEL_FAILED = _LLM_SHORT_TITEL + "/failed"
 _LLM_EXTRACT_RELEVANT_SECTION = _LLM + "/extract_relevant_section"
 
 
@@ -103,11 +117,14 @@ class LLMCounter(StatsCounter):
 
     SUMMARIZE_TOTAL = _LLM_SUMMARIZE + "/total"
     SUMMARIZE_DONE = _LLM_SUMMARIZE + "/done"
-
     SUMMARIZE_FAILED_PROVIDER = _LLM_SUMMARIZE_FAILED + "/provider"
     SUMMARIZE_FAILED_APPLICATION = _LLM_SUMMARIZE_FAILED + "/application"
     SUMMARIZE_FAILED_EMPTY_SUMMARY = _LLM_SUMMARIZE_FAILED + "/empty_summary"
     SUMMARIZE_FAILED_NOT_PLAIN_TEXT = _LLM_SUMMARIZE_FAILED + "/not_plain_text"
+
+    SHORT_TITEL_FAILED_PROVIDER = _LLM_SHORT_TITEL_FAILED + "/provider"
+    SHORT_TITEL_TOTAL = _LLM_SHORT_TITEL + "/total"
+    SHORT_TITEL_DONE = _LLM_SHORT_TITEL + "/done"
 
     @staticmethod
     def summarize_art(art: str) -> str:

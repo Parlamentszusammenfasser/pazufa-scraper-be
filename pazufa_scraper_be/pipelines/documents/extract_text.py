@@ -2,6 +2,7 @@ import logging
 from typing import Self
 
 import xberg
+from pazufa_corelib.normalization import normalize_volltext
 from scrapy.exceptions import DropItem
 from xberg import ExtractInput, ExtractInputKind, ExtractionConfig, OcrConfig, PageConfig
 
@@ -66,16 +67,7 @@ class ExtractTextFromPDF(CachePipeline, StatsPipeline):
 
                     self.increment_stats(TextCounter.CACHE_MISS)
                     text = await _extract_text(document_bytes=cache.get_bytes(Key.DOCUMENT), ocr=False)
-
-                    # fmt: off
-                    # Some postprocessing that was necessary after eyeballing documents
-                    text = (
-                        text
-                        .strip()                                                      # remove leading/trailing spaces
-                        .replace("\x02", "")                                          # hyphens (line-breaks with -)
-                        .replace("\x15", "").replace("\x16", "").replace("\x18", "")  # showed up when bold face Drucksache Nummer could not be extracted
-                    )
-                    # fmt: on
+                    text = normalize_volltext(text)
 
                     if len(text) == 0:
                         self.increment_stats(TextCounter.EXTRACT_FAILED_EMPTY_TEXT)

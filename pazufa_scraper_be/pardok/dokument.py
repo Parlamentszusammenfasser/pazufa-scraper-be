@@ -10,6 +10,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, HttpUrl, Pri
 from pazufa_scraper_be.pardok.utils import CoercedStrList, GermanDate  # noqa: TC001
 
 if TYPE_CHECKING:
+    from pazufa_scraper_be.cache import Cache
     from pazufa_scraper_be.pardok.vorgang import GesetzVorgang
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,15 @@ class ProtokollTyp(StrEnum):
     Beschluss = "bp"
     Inhalt = "ip"
     Wort = "wp"
+
+    @classmethod
+    def from_cache(cls, cache: Cache) -> ProtokollTyp | None:
+        """Create object based on cache."""
+        for typ in cls:
+            if cache.name.endswith(f"-{typ}"):
+                return typ
+
+        return None
 
 
 class DokTyp(StrEnum):

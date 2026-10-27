@@ -163,7 +163,7 @@ class BuildPaZuFaVorgang(CachePipeline, StatsPipeline):
             zp_start, zp_modifiziert = get_station_zeitpunkte(dok_container)
 
             station = Station(
-                api_id=uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), f"Station-{dok_container.pardok.id}"),
+                api_id=uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), f"Station-{vorgang.id}-{dok_container.pardok.id}"),
                 zp_start=zp_start,
                 zp_modifiziert=zp_modifiziert,
                 gremium=gremium,
@@ -181,13 +181,14 @@ class BuildPaZuFaVorgang(CachePipeline, StatsPipeline):
             if dok_container.pardok.abstract is not None and (
                 new_station := check_and_create_vote_outcome_station(station=station, dok_abstract=dok_container.pardok.abstract)
             ):
-                new_station.api_id = uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), f"Station-{dok_container.pardok.id}-{new_station.typ}")
+                new_station.api_id = uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), f"Station-{vorgang.id}-{new_station.typ}")
                 stationen.append(new_station)
 
         dokument = stationen[0].dokumente[0]
         if isinstance(dokument, Dokument):
             titel = dokument.titel
             initiatoren = dokument.autoren
+            kurztitel = dokument.kurztitel
 
         else:
             msg = f"[{vorgang.id}]: Could not create titel and autoren."
@@ -198,6 +199,7 @@ class BuildPaZuFaVorgang(CachePipeline, StatsPipeline):
         return Vorgang(
             api_id=uuid.uuid5(self.crawler.settings.get("SCRAPER_UUID"), vorgang.id),
             titel=titel,
+            kurztitel=kurztitel,
             wahlperiode=self.wahlperiode,
             typ=Vorgangstyp.GG_LAND_PARL,
             initiatoren=initiatoren,
@@ -209,6 +211,5 @@ class BuildPaZuFaVorgang(CachePipeline, StatsPipeline):
             schlagworte=_merge_schlagworte(document_schlagworte=document_schlagworte, vorgang_schlagworte=vorgang_schlagworte),
             # NOTE: Following should be revisited
             verfassungsaendernd=False,
-            kurztitel=UNSET,
             lobbyregister=UNSET,
         )

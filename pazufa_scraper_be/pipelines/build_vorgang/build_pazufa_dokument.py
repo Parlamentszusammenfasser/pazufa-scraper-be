@@ -4,6 +4,7 @@ import logging
 import re
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
+from uuid import UUID, uuid5
 
 from pazufa_corelib.api_client.models import Autor, Doktyp, DokumentHash, HashStrategy, Mime, Zusammenfassungstupel
 from pazufa_corelib.api_client.models import Dokument as PaZuFaDokument
@@ -33,9 +34,6 @@ _PARDOK_PAZUFA_DOKTYP_MAPPING = {
     (DokArt.PlPr, DokTyp.Lesung_I): Doktyp.REDEPROTOKOLL,
     (DokArt.PlPr, DokTyp.Lesung_II): Doktyp.REDEPROTOKOLL,
     # Ausschussberatung und Beschlussempfehlung
-    (DokArt.APr, DokTyp.Ausschussberatung): Doktyp.REDEPROTOKOLL,
-    (DokArt.APr, DokTyp.ABespr_Par_21_Abs_3_GO): Doktyp.REDEPROTOKOLL,
-    (DokArt.APr, DokTyp.APr): Doktyp.REDEPROTOKOLL,
     (DokArt.APr, DokTyp.BeschlEmpf): Doktyp.BESCHLUSSEMPF,
     (DokArt.Drs, DokTyp.BeschlEmpf): Doktyp.BESCHLUSSEMPF,
     # Gesetzesblatt
@@ -46,10 +44,23 @@ _PARDOK_PAZUFA_DOKTYP_MAPPING = {
     (DokArt.Drs, DokTyp.AendAntr): Doktyp.ANTRAG,
     (DokArt.Drs, DokTyp.Antr): Doktyp.ANTRAG,
 }
+_APR_PAZUFA_DOKTYP_MAPPING: dict[ProtokollTyp, Doktyp] = {
+    ProtokollTyp.Beschluss: Doktyp.BESCHLUSSPROTOKOLL,
+    ProtokollTyp.Inhalt: Doktyp.INHALTSPROTOKOLL,
+    ProtokollTyp.Wort: Doktyp.REDEPROTOKOLL,
+}
 
 
-def _get_typ(dokument: BaseGesetzDokument) -> Doktyp:
+def _get_dok_id(document: BaseGesetzDokument, scraper_uuid: UUID, protokoll_typ: ProtokollTyp | None) -> UUID:
+    name = document.id if not isinstance(document, APrDokument) else f"{document.id}-{protokoll_typ}"
+    return uuid5(scraper_uuid, name)
+
+
+def _get_typ(dokument: BaseGesetzDokument, cache: Cache) -> Doktyp:
     if ret_val := _PARDOK_PAZUFA_DOKTYP_MAPPING.get((dokument.art, dokument.typ)):
+        return ret_val
+
+    if dokument.art == DokArt.APr and (ret_val := _APR_PAZUFA_DOKTYP_MAPPING.get(ProtokollTyp.from_cache(cache))):
         return ret_val
 
     msg = f"[{dokument.vorgang.id} - {dokument.id}]: Using fallback for DokTyp. Got the following (DokArt, DokTyp): ({dokument.art}, {dokument.typ})"
@@ -57,14 +68,9 @@ def _get_typ(dokument: BaseGesetzDokument) -> Doktyp:
     return Doktyp.SONSTIG
 
 
-def _get_drucksnr(dokument: BaseGesetzDokument, cache: Cache) -> str:
-    if isinstance(dokument, (DrsDokument, PlPrDokument)):
+def _get_drucksnr(dokument: BaseGesetzDokument) -> str:
+    if isinstance(dokument, (DrsDokument, PlPrDokument, APrDokument)):
         return dokument.nr
-
-    # Ausschussprotokolle append their type abbreviation to avoid Backend treating them as the same document due to the same Nr.
-    if isinstance(dokument, APrDokument) and dokument.lok_url:
-        document_name_suffix = cache.name[-3:]
-        return f"{dokument.nr}{document_name_suffix}"
 
     if isinstance(dokument, GVBlDokument):
         return f"{dokument.h_nr}/{dokument.jg}"
@@ -88,7 +94,7 @@ def _get_zusammenfassung(cache: Cache) -> list[Zusammenfassungstupel] | Unset:
     return [Zusammenfassungstupel(inhalt=summary, typ="full-llm")]
 
 
-_APR_SUFFIX_LABELS: dict[ProtokollTyp, str] = {
+_APR_TYP_LABELS: dict[ProtokollTyp, str] = {
     ProtokollTyp.Beschluss: "Ausschuss Beschlussprotokoll",
     ProtokollTyp.Inhalt: "Ausschuss Inhaltsprotokoll",
     ProtokollTyp.Wort: "Ausschuss Wortprotokoll",
@@ -101,17 +107,14 @@ _DRS_TYP_LABELS: dict[DokTyp, str] = {
 
 
 def _get_titel(dokument: AnyGesetzDokument, cache: Cache) -> str:
-    """Derive a human-readable title for a document, falling back to its art label."""
     if isinstance(dokument, (GVBlDokument, DrsDokument)) and isinstance(dokument.titel, str):
         return dokument.titel
 
-    drucksnr = _get_drucksnr(dokument, cache=cache)
+    drucksnr = _get_drucksnr(dokument)
     suffix = f" - {drucksnr}" if drucksnr else ""
 
-    if isinstance(dokument, APrDokument) and dokument.lok_url:
-        for typ, label in _APR_SUFFIX_LABELS.items():
-            if cache.name.endswith(f"-{typ}"):
-                return f"{label}{suffix[:-3]}"  # for Dokument Titel, we do not need the '-ip' suffix
+    if isinstance(dokument, APrDokument) and (typ := ProtokollTyp.from_cache(cache)) and (label := _APR_TYP_LABELS.get(typ)):
+        return f"{label}{suffix}"
 
     if isinstance(dokument, DrsDokument) and (label := _DRS_TYP_LABELS.get(dokument.typ)):
         return f"{label}{suffix}"
@@ -125,6 +128,10 @@ def _get_titel(dokument: AnyGesetzDokument, cache: Cache) -> str:
     msg = f"[{dokument.vorgang.id} - {dokument.id}]: Using fallback (DokArtL) for document titel."
     logger.info(msg)
     return dokument.art_l
+
+
+def _get_kurztitel(cache: Cache) -> str | Unset:
+    return cache.get_text(Key.SHORT_TITEL) if Key.SHORT_TITEL in cache else UNSET
 
 
 def _clean_urheber(urheber: str) -> str:
@@ -220,8 +227,9 @@ def build_pazufa_dokument(dokument: AnyGesetzDokument, cache: Cache, url: HttpUr
     zp_erstellt, zp_referenz, zp_modifiziert = _get_zeitpunkte(dokument, cache=cache)
 
     return PaZuFaDokument(
-        typ=_get_typ(dokument),
+        typ=_get_typ(dokument, cache=cache),
         titel=_get_titel(dokument, cache=cache),
+        kurztitel=_get_kurztitel(cache=cache),
         volltext=volltext,
         zp_erstellt=zp_erstellt,
         zp_referenz=zp_referenz,
@@ -229,11 +237,10 @@ def build_pazufa_dokument(dokument: AnyGesetzDokument, cache: Cache, url: HttpUr
         link=str(url),
         hash_=_compute_and_get_hashes(cache=cache),
         autoren=_get_autoren(dokument),
-        schlagworte=get_document_schlagworte(dokument),
-        drucksnr=_get_drucksnr(dokument, cache=cache),
+        drucksnr=_get_drucksnr(dokument),
         zusammenfassung=_get_zusammenfassung(cache=cache),
+        schlagworte=get_document_schlagworte(dokument),
         # NOTE: Following should be revisited
-        kurztitel=UNSET,
         vorwort=UNSET,
         meinung=UNSET,
     )
