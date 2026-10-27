@@ -1,8 +1,9 @@
 import logging
+from datetime import timedelta
 from pathlib import Path
 from typing import Self
 
-from pazufa_corelib.llm import LLMProviderError
+from pazufa_corelib.llm import LLMProviderError, LLMTemporaryProviderError
 from scrapy.exceptions import DropItem
 
 from pazufa_scraper_be.cache import Cache, Key
@@ -60,7 +61,7 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
         return None
 
     # TODO(se-jaeger): refactor to reduce complexity
-    async def process_item(self: Self, vorgang: GesetzVorgang) -> GesetzVorgang:  # noqa: C901
+    async def process_item(self: Self, vorgang: GesetzVorgang) -> GesetzVorgang:  # noqa: C901, PLR0912
         """Summarize extracted text for each document in the Vorgang and cache the result."""
         if not isinstance(vorgang, GesetzVorgang):
             msg = f"Expected {GesetzVorgang.__name__} object but got {vorgang.__class__.__name__}."
@@ -74,8 +75,12 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
                 cache = self.get_cache(document=dokument, document_url=dokument_url)
 
                 if Key.SUMMARY_IGNORE in cache:
-                    self.increment_stats(SummaryCounter.IGNORE)
-                    continue
+                    if cache.is_expired(Key.SUMMARY_IGNORE):
+                        cache.delete_entry(Key.SUMMARY_IGNORE)
+
+                    else:
+                        self.increment_stats(SummaryCounter.IGNORE)
+                        continue
 
                 # There is no text to summarize => skip
                 if Key.TEXT not in cache:
@@ -90,6 +95,14 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
                 self.increment_stats(SummaryCounter.CACHE_MISS)
                 try:
                     summary = await self.summarize(dokument=dokument, cache=cache)
+
+                except LLMTemporaryProviderError as error:
+                    self.increment_stats(LLMCounter.SUMMARIZE_FAILED_PROVIDER)
+                    msg = f"[{vorgang.id} - {dokument.id}]: LLM summarization failed due to temporary provider problem."
+                    logger.warning(msg)
+
+                    cache.set_text(key=Key.SUMMARY_IGNORE, value=repr(error), ttl=timedelta(hours=12))
+                    continue
 
                 except LLMProviderError as error:
                     self.increment_stats(LLMCounter.SUMMARIZE_FAILED_PROVIDER)

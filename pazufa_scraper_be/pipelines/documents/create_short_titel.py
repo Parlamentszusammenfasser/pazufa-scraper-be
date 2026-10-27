@@ -1,7 +1,8 @@
 import logging
+from datetime import timedelta
 from typing import Self
 
-from pazufa_corelib.llm import KURZTITEL_PROMPT, KurztitelResult, LLMProviderError
+from pazufa_corelib.llm import KURZTITEL_PROMPT, KurztitelResult, LLMProviderError, LLMTemporaryProviderError
 from scrapy.exceptions import DropItem
 
 from pazufa_scraper_be.cache import Key
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 class CreateShortTitel(CachePipeline, LLMPipeline, StatsPipeline):
     """Pipeline that create Kurztitel via an LLM."""
 
-    async def process_item(self: Self, vorgang: GesetzVorgang) -> GesetzVorgang:
+    async def process_item(self: Self, vorgang: GesetzVorgang) -> GesetzVorgang:  # noqa: C901
         """Create Kurztitel for Gesetz- und Verordnungsblatt (GVBl) and Drucksachen documents in the Vorgang and cache the result."""
         if not isinstance(vorgang, GesetzVorgang):
             msg = f"Expected {GesetzVorgang.__name__} object but got {vorgang.__class__.__name__}."
@@ -29,8 +30,12 @@ class CreateShortTitel(CachePipeline, LLMPipeline, StatsPipeline):
                 cache = self.get_cache(document=dokument, document_url=dokument.lok_url)
 
                 if Key.SHORT_TITEL_IGNORE in cache:
-                    self.increment_stats(ShortTitelCounter.IGNORE)
-                    continue
+                    if cache.is_expired(Key.SHORT_TITEL_IGNORE):
+                        cache.delete_entry(key=Key.SHORT_TITEL_IGNORE)
+
+                    else:
+                        self.increment_stats(ShortTitelCounter.IGNORE)
+                        continue
 
                 if Key.SHORT_TITEL in cache:
                     self.increment_stats(ShortTitelCounter.CACHE_HIT)
@@ -42,6 +47,13 @@ class CreateShortTitel(CachePipeline, LLMPipeline, StatsPipeline):
                     abstract = "<Leider ist kein Abstract verfügbar. Nutze nur den Titel oben.>"
                     prompt = KURZTITEL_PROMPT.format(titel=dokument.titel, abstract=abstract)
                     result = await self.llm_connector.extract(prompt, KurztitelResult)
+
+                except LLMTemporaryProviderError as error:
+                    self.increment_stats(LLMCounter.SHORT_TITEL_FAILED_TEMPORARY)
+                    msg = f"[{vorgang.id} - {dokument.id}]: LLM creation of short title failed due to temporary provider problem."
+                    logger.warning(msg)
+
+                    cache.set_text(key=Key.SHORT_TITEL_IGNORE, value=repr(error), ttl=timedelta(hours=12))
 
                 except LLMProviderError as error:
                     self.increment_stats(LLMCounter.SHORT_TITEL_FAILED_PROVIDER)
