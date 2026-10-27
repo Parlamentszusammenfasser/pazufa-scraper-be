@@ -48,8 +48,7 @@ class CreateShortTitel(CachePipeline, LLMPipeline, StatsPipeline):
                     msg = f"[{vorgang.id} - {dokument.id}]: LLM creation of short title failed due to provider problem."
                     logger.warning(msg)
 
-                    cache[Key.SHORT_TITEL] = repr(error)
-                    continue
+                    cache[Key.SHORT_TITEL_IGNORE] = repr(error)
 
                 else:
                     self.increment_stats(LLMCounter.SHORT_TITEL_DONE)
