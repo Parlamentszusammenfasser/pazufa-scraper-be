@@ -86,6 +86,7 @@ class SummaryCounter(StatsCounter):
     CACHE_HIT = _SUMMARY_CACHE + "/hit"
     CACHE_MISS = _SUMMARY_CACHE + "/miss"
     IGNORE = _SUMMARY + "/ignore"
+    RESET_TEMPORARY_IGNORE = _SUMMARY + "/reset_temporary_ignore"
 
 
 _SHORT_TITEL = PAZUFA + "/ShortTitel"
@@ -98,6 +99,7 @@ class ShortTitelCounter(StatsCounter):
     CACHE_HIT = _SHORT_TITEL_CACHE + "/hit"
     CACHE_MISS = _SHORT_TITEL_CACHE + "/miss"
     IGNORE = _SHORT_TITEL + "/ignore"
+    RESET_TEMPORARY_IGNORE = _SHORT_TITEL + "/reset_temporary_ignore"
 
 
 _LLM = PAZUFA + "/LLM"
@@ -119,12 +121,16 @@ class LLMCounter(StatsCounter):
     SUMMARIZE_DONE = _LLM_SUMMARIZE + "/done"
     SUMMARIZE_FAILED_PROVIDER = _LLM_SUMMARIZE_FAILED + "/provider"
     SUMMARIZE_FAILED_TEMPORARY = _LLM_SUMMARIZE_FAILED + "/temporary"
+    SUMMARIZE_FAILED_QUOTA = _LLM_SUMMARIZE_FAILED + "/quota"
+    SUMMARIZE_FAILED_RATE_LIMIT = _LLM_SUMMARIZE_FAILED + "/rate_limit"
     SUMMARIZE_FAILED_APPLICATION = _LLM_SUMMARIZE_FAILED + "/application"
     SUMMARIZE_FAILED_EMPTY_SUMMARY = _LLM_SUMMARIZE_FAILED + "/empty_summary"
     SUMMARIZE_FAILED_NOT_PLAIN_TEXT = _LLM_SUMMARIZE_FAILED + "/not_plain_text"
 
     SHORT_TITEL_FAILED_PROVIDER = _LLM_SHORT_TITEL_FAILED + "/provider"
     SHORT_TITEL_FAILED_TEMPORARY = _LLM_SHORT_TITEL_FAILED + "/temporary"
+    SHORT_TITEL_FAILED_QUOTA = _LLM_SHORT_TITEL_FAILED + "/quota"
+    SHORT_TITEL_FAILED_RATE_LIMIT = _LLM_SHORT_TITEL_FAILED + "/rate_limit"
     SHORT_TITEL_TOTAL = _LLM_SHORT_TITEL + "/total"
     SHORT_TITEL_DONE = _LLM_SHORT_TITEL + "/done"
 

@@ -3,7 +3,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Self
 
-from pazufa_corelib.llm import LLMProviderError, LLMTemporaryProviderError
+from pazufa_corelib.llm import LLMProviderError, LLMQuotaExceededError, LLMRateLimitError, LLMTemporaryProviderError
 from scrapy.exceptions import DropItem
 
 from pazufa_scraper_be.cache import Cache, Key
@@ -61,7 +61,7 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
         return None
 
     # TODO(se-jaeger): refactor to reduce complexity
-    async def process_item(self: Self, vorgang: GesetzVorgang) -> GesetzVorgang:  # noqa: C901, PLR0912
+    async def process_item(self: Self, vorgang: GesetzVorgang) -> GesetzVorgang:  # noqa: C901, PLR0912, PLR0915
         """Summarize extracted text for each document in the Vorgang and cache the result."""
         if not isinstance(vorgang, GesetzVorgang):
             msg = f"Expected {GesetzVorgang.__name__} object but got {vorgang.__class__.__name__}."
@@ -77,6 +77,7 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
                 if Key.SUMMARY_IGNORE in cache:
                     if cache.is_expired(Key.SUMMARY_IGNORE):
                         cache.delete_entry(Key.SUMMARY_IGNORE)
+                        self.increment_stats(SummaryCounter.RESET_TEMPORARY_IGNORE)
 
                     else:
                         self.increment_stats(SummaryCounter.IGNORE)
@@ -97,11 +98,27 @@ class SummarizeExtractedPDFText(CachePipeline, LLMPipeline, StatsPipeline):
                     summary = await self.summarize(dokument=dokument, cache=cache)
 
                 except LLMTemporaryProviderError as error:
-                    self.increment_stats(LLMCounter.SUMMARIZE_FAILED_PROVIDER)
+                    self.increment_stats(LLMCounter.SUMMARIZE_FAILED_TEMPORARY)
                     msg = f"[{vorgang.id} - {dokument.id}]: LLM summarization failed due to temporary provider problem."
                     logger.warning(msg)
 
                     cache.set_text(key=Key.SUMMARY_IGNORE, value=repr(error), ttl=timedelta(hours=12))
+                    continue
+
+                except LLMQuotaExceededError as error:
+                    self.increment_stats(LLMCounter.SUMMARIZE_FAILED_QUOTA)
+                    msg = f"[{vorgang.id} - {dokument.id}]: LLM summarization failed due to quota exceeded."
+                    logger.warning(msg)
+
+                    cache.set_text(key=Key.SUMMARY_IGNORE, value=repr(error), ttl=timedelta(hours=24))
+                    continue
+
+                except LLMRateLimitError as error:
+                    self.increment_stats(LLMCounter.SUMMARIZE_FAILED_RATE_LIMIT)
+                    msg = f"[{vorgang.id} - {dokument.id}]: LLM summarization failed due to rate limit."
+                    logger.warning(msg)
+
+                    cache.set_text(key=Key.SUMMARY_IGNORE, value=repr(error), ttl=timedelta(hours=1))
                     continue
 
                 except LLMProviderError as error:
