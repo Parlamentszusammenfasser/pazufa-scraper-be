@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import StrEnum
 from http import HTTPStatus
 
@@ -123,14 +124,16 @@ class LLMCounter(StatsCounter):
     SUMMARIZE_FAILED_TEMPORARY = _LLM_SUMMARIZE_FAILED + "/temporary"
     SUMMARIZE_FAILED_QUOTA = _LLM_SUMMARIZE_FAILED + "/quota"
     SUMMARIZE_FAILED_RATE_LIMIT = _LLM_SUMMARIZE_FAILED + "/rate_limit"
-    SUMMARIZE_FAILED_APPLICATION = _LLM_SUMMARIZE_FAILED + "/application"
     SUMMARIZE_FAILED_EMPTY_SUMMARY = _LLM_SUMMARIZE_FAILED + "/empty_summary"
     SUMMARIZE_FAILED_NOT_PLAIN_TEXT = _LLM_SUMMARIZE_FAILED + "/not_plain_text"
+    SUMMARIZE_FAILED_VALIDATION = _LLM_SUMMARIZE_FAILED + "/validation"
 
     SHORT_TITEL_FAILED_PROVIDER = _LLM_SHORT_TITEL_FAILED + "/provider"
     SHORT_TITEL_FAILED_TEMPORARY = _LLM_SHORT_TITEL_FAILED + "/temporary"
     SHORT_TITEL_FAILED_QUOTA = _LLM_SHORT_TITEL_FAILED + "/quota"
     SHORT_TITEL_FAILED_RATE_LIMIT = _LLM_SHORT_TITEL_FAILED + "/rate_limit"
+    SHORT_TITEL_FAILED_VALIDATION = _LLM_SHORT_TITEL_FAILED + "/validation"
+    SHORT_TITEL_FAILED_EMPTY = _LLM_SHORT_TITEL_FAILED + "/empty_short_titel"
     SHORT_TITEL_TOTAL = _LLM_SHORT_TITEL + "/total"
     SHORT_TITEL_DONE = _LLM_SHORT_TITEL + "/done"
 
@@ -138,3 +141,52 @@ class LLMCounter(StatsCounter):
     def summarize_art(art: str) -> str:
         """Return the counter name for a dispatch-by-document-type LLM call."""
         return f"{_LLM_SUMMARIZE}/{art}"
+
+
+@dataclass(frozen=True)
+class LLMTaskCounters:
+    """Bundle of counters used by a cached LLM task pipeline."""
+
+    ignore: StatsCounter
+    reset_temporary_ignore: StatsCounter
+    cache_hit: StatsCounter
+    cache_miss: StatsCounter
+    total: StatsCounter
+    done: StatsCounter
+    failed_provider: StatsCounter
+    failed_temporary: StatsCounter
+    failed_quota: StatsCounter
+    failed_rate_limit: StatsCounter
+    failed_validation: StatsCounter
+    failed_empty: StatsCounter
+
+
+SUMMARY_COUNTERS = LLMTaskCounters(
+    ignore=SummaryCounter.IGNORE,
+    reset_temporary_ignore=SummaryCounter.RESET_TEMPORARY_IGNORE,
+    cache_hit=SummaryCounter.CACHE_HIT,
+    cache_miss=SummaryCounter.CACHE_MISS,
+    total=LLMCounter.SUMMARIZE_TOTAL,
+    done=LLMCounter.SUMMARIZE_DONE,
+    failed_provider=LLMCounter.SUMMARIZE_FAILED_PROVIDER,
+    failed_temporary=LLMCounter.SUMMARIZE_FAILED_TEMPORARY,
+    failed_quota=LLMCounter.SUMMARIZE_FAILED_QUOTA,
+    failed_rate_limit=LLMCounter.SUMMARIZE_FAILED_RATE_LIMIT,
+    failed_validation=LLMCounter.SUMMARIZE_FAILED_VALIDATION,
+    failed_empty=LLMCounter.SUMMARIZE_FAILED_EMPTY_SUMMARY,
+)
+
+SHORT_TITEL_COUNTERS = LLMTaskCounters(
+    ignore=ShortTitelCounter.IGNORE,
+    reset_temporary_ignore=ShortTitelCounter.RESET_TEMPORARY_IGNORE,
+    cache_hit=ShortTitelCounter.CACHE_HIT,
+    cache_miss=ShortTitelCounter.CACHE_MISS,
+    total=LLMCounter.SHORT_TITEL_TOTAL,
+    done=LLMCounter.SHORT_TITEL_DONE,
+    failed_provider=LLMCounter.SHORT_TITEL_FAILED_PROVIDER,
+    failed_temporary=LLMCounter.SHORT_TITEL_FAILED_TEMPORARY,
+    failed_quota=LLMCounter.SHORT_TITEL_FAILED_QUOTA,
+    failed_rate_limit=LLMCounter.SHORT_TITEL_FAILED_RATE_LIMIT,
+    failed_validation=LLMCounter.SHORT_TITEL_FAILED_VALIDATION,
+    failed_empty=LLMCounter.SHORT_TITEL_FAILED_EMPTY,
+)

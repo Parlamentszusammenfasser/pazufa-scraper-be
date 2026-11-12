@@ -1,84 +1,40 @@
-import logging
-from datetime import timedelta
-from typing import Self
+from collections.abc import Iterator
+from typing import ClassVar, Self
 
-from pazufa_corelib.llm import KURZTITEL_PROMPT, KurztitelResult, LLMProviderError, LLMQuotaExceededError, LLMRateLimitError, LLMTemporaryProviderError
-from scrapy.exceptions import DropItem
+from pazufa_corelib.llm import KURZTITEL_PROMPT, KurztitelResult, LLMConnector
+from pydantic import HttpUrl
 
-from pazufa_scraper_be.cache import Key
-from pazufa_scraper_be.pardok import DrsDokument, GesetzVorgang, GVBlDokument
-from pazufa_scraper_be.pipelines._base import CachePipeline, LLMPipeline, StatsPipeline
-from pazufa_scraper_be.pipelines.stats_counter import LLMCounter, ShortTitelCounter
+from pazufa_scraper_be.cache import Cache, Key
+from pazufa_scraper_be.pardok import AnyGesetzDokument, DrsDokument, GesetzVorgang, GVBlDokument
+from pazufa_scraper_be.pipelines.documents._llm_task import CachedLLMTaskPipeline
+from pazufa_scraper_be.pipelines.stats_counter import SHORT_TITEL_COUNTERS, LLMTaskCounters
 
-logger = logging.getLogger(__name__)
+_NO_ABSTRACT = "<Leider ist kein Abstract verfügbar. Nutze nur den Titel oben.>"
 
 
-class CreateShortTitel(CachePipeline, LLMPipeline, StatsPipeline):
-    """Pipeline that create Kurztitel via an LLM."""
+class CreateShortTitel(CachedLLMTaskPipeline):
+    """Pipeline that creates Kurztitel for titled Gesetz- und Verordnungsblatt (GVBl) and Drucksachen documents via an LLM."""
 
-    async def process_item(self: Self, vorgang: GesetzVorgang) -> GesetzVorgang:  # noqa: C901, PLR0912
-        """Create Kurztitel for Gesetz- und Verordnungsblatt (GVBl) and Drucksachen documents in the Vorgang and cache the result."""
-        if not isinstance(vorgang, GesetzVorgang):
-            msg = f"Expected {GesetzVorgang.__name__} object but got {vorgang.__class__.__name__}."
-            raise DropItem(msg)
+    ignore_key: ClassVar[Key] = Key.SHORT_TITEL_IGNORE
+    counters: ClassVar[LLMTaskCounters] = SHORT_TITEL_COUNTERS
+    task_name: ClassVar[str] = "LLM creation of short title"
 
-        if self.llm_connector is None:
-            return vorgang
-
+    def targets(self: Self, vorgang: GesetzVorgang) -> Iterator[tuple[AnyGesetzDokument, HttpUrl]]:
+        """Yield the primary URL of GVBl and Drs documents that have a titel."""
         for dokument in vorgang.dokumente:
-            if isinstance(dokument, (GVBlDokument, DrsDokument)) and isinstance(dokument.titel, str) and dokument.lok_url:
-                cache = self.get_cache(document=dokument, document_url=dokument.lok_url)
+            if isinstance(dokument, (GVBlDokument, DrsDokument)) and dokument.titel and dokument.lok_url:
+                yield dokument, dokument.lok_url
 
-                if Key.SHORT_TITEL_IGNORE in cache:
-                    if cache.is_expired(Key.SHORT_TITEL_IGNORE):
-                        cache.delete_entry(key=Key.SHORT_TITEL_IGNORE)
-                        self.increment_stats(ShortTitelCounter.RESET_TEMPORARY_IGNORE)
+    def is_cached(self: Self, cache: Cache) -> bool:
+        """Check whether a short titel exists."""
+        return Key.SHORT_TITEL in cache
 
-                    else:
-                        self.increment_stats(ShortTitelCounter.IGNORE)
-                        continue
+    async def generate(self: Self, connector: LLMConnector, dokument: AnyGesetzDokument, cache: Cache) -> str:  # noqa: ARG002
+        """Create the short titel from the document titel."""
+        prompt = KURZTITEL_PROMPT.format(titel=getattr(dokument, "titel", ""), abstract=_NO_ABSTRACT)
+        result = await connector.extract(prompt, KurztitelResult)
+        return result.kurztitel
 
-                if Key.SHORT_TITEL in cache:
-                    self.increment_stats(ShortTitelCounter.CACHE_HIT)
-                    continue
-
-                try:
-                    self.increment_stats(ShortTitelCounter.CACHE_MISS)
-                    self.increment_stats(LLMCounter.SHORT_TITEL_TOTAL)
-                    abstract = "<Leider ist kein Abstract verfügbar. Nutze nur den Titel oben.>"
-                    prompt = KURZTITEL_PROMPT.format(titel=dokument.titel, abstract=abstract)
-                    result = await self.llm_connector.extract(prompt, KurztitelResult)
-
-                except LLMTemporaryProviderError as error:
-                    self.increment_stats(LLMCounter.SHORT_TITEL_FAILED_TEMPORARY)
-                    msg = f"[{vorgang.id} - {dokument.id}]: LLM creation of short title failed due to temporary provider problem."
-                    logger.warning(msg)
-
-                    cache.set_text(key=Key.SHORT_TITEL_IGNORE, value=repr(error), ttl=timedelta(hours=12))
-
-                except LLMQuotaExceededError as error:
-                    self.increment_stats(LLMCounter.SHORT_TITEL_FAILED_QUOTA)
-                    msg = f"[{vorgang.id} - {dokument.id}]: LLM creation of short title failed due to quota exceeded."
-                    logger.warning(msg)
-
-                    cache.set_text(key=Key.SHORT_TITEL_IGNORE, value=repr(error), ttl=timedelta(hours=6))
-
-                except LLMRateLimitError as error:
-                    self.increment_stats(LLMCounter.SHORT_TITEL_FAILED_RATE_LIMIT)
-                    msg = f"[{vorgang.id} - {dokument.id}]: LLM creation of short title failed due to rate limit."
-                    logger.warning(msg)
-
-                    cache.set_text(key=Key.SHORT_TITEL_IGNORE, value=repr(error), ttl=timedelta(hours=1))
-
-                except LLMProviderError as error:
-                    self.increment_stats(LLMCounter.SHORT_TITEL_FAILED_PROVIDER)
-                    msg = f"[{vorgang.id} - {dokument.id}]: LLM creation of short title failed due to provider problem."
-                    logger.warning(msg)
-
-                    cache[Key.SHORT_TITEL_IGNORE] = repr(error)
-
-                else:
-                    self.increment_stats(LLMCounter.SHORT_TITEL_DONE)
-                    cache[Key.SHORT_TITEL] = result.kurztitel
-
-        return vorgang
+    def store(self: Self, cache: Cache, result: str) -> None:
+        """Cache the short titel."""
+        cache[Key.SHORT_TITEL] = result

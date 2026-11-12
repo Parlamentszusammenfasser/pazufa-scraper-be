@@ -295,12 +295,12 @@ def test_clean_urheber(input_text: str, expected_text: str) -> None:
 @pytest.mark.parametrize(
     ("last_modified", "expected_date"),
     [
-        (datetime(2024, 5, 10, 12, 34, 56, tzinfo=UTC), datetime(2024, 5, 10, tzinfo=UTC)),
-        (datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC), datetime(2024, 12, 31, tzinfo=UTC)),
+        (datetime(2024, 5, 10, 12, 34, 56, tzinfo=UTC), datetime(2024, 5, 10, 12, 34, 56, tzinfo=UTC)),
+        (datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC), datetime(2024, 12, 31, 23, 59, 59, tzinfo=UTC)),
     ],
 )
 def test_get_zp_modifiziert_with_last_modified(tmp_path: Path, plpr_data: dict[str, Any], last_modified: datetime, expected_date: datetime) -> None:
-    """Verify that if LAST_MODIFIED.txt is present, it's used and normalized to midnight UTC."""
+    """Verify that if LAST_MODIFIED.txt is present, it's used unchanged."""
     cache = Cache(base_dir=tmp_path, name="document-folder")
     cache[Key.LAST_MODIFIED] = last_modified
 
@@ -425,7 +425,7 @@ def test_get_autoren(request: pytest.FixtureRequest, fixture_name: str, dokument
         (False, True, logging.WARNING),
     ],
 )
-def test_check_text_file(  # noqa: PLR0913, PLR0917
+def test_check_text_file(
     tmp_path: Path,
     base_vorgang_data: dict[str, Any],
     plpr_data: dict[str, Any],
@@ -466,7 +466,7 @@ def test_check_text_file(  # noqa: PLR0913, PLR0917
         (False, True, logging.INFO),
     ],
 )
-def test_check_summary_file(  # noqa: PLR0913, PLR0917
+def test_check_summary_file(
     tmp_path: Path,
     base_vorgang_data: dict[str, Any],
     plpr_data: dict[str, Any],
@@ -529,4 +529,4 @@ def test_build_pazufa_dokument_happy_path(tmp_path: Path, plpr_data: dict[str, A
     assert result.zusammenfassung[0].inhalt == summary_content
     assert result.link == str(url)
 
-    assert result.zp_modifiziert == datetime(2024, 5, 10, tzinfo=UTC)
+    assert result.zp_modifiziert == datetime(2024, 5, 10, 12, 34, 56, tzinfo=UTC)
