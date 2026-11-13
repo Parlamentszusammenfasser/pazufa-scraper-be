@@ -11,7 +11,7 @@ from pazufa_corelib.api_client.models import Vorgang as PaZuFaVorgang
 from pazufa_corelib.api_client.types import UNSET, Unset
 from scrapy.exceptions import DropItem
 
-from pazufa_scraper_be.constants import ANGENOMMEN, VERTAGT
+from pazufa_scraper_be.constants import ANGENOMMEN, HAUSHALTSGESETZ, VERTAGT
 from pazufa_scraper_be.pardok import APrDokument, DokTyp, DrsDokument, GesetzVorgang, GVBlDokument, PlPrDokument
 from pazufa_scraper_be.pipelines._base import CachePipeline, StatsPipeline
 from pazufa_scraper_be.pipelines.build_vorgang import build_pazufa_dokument
@@ -201,7 +201,7 @@ class BuildPaZuFaVorgang(CachePipeline, StatsPipeline):
             titel=titel,
             kurztitel=kurztitel,
             wahlperiode=self.wahlperiode,
-            typ=Vorgangstyp.GG_LAND_PARL,
+            typ=Vorgangstyp.GG_LAND_PARL_HAUSHALT if bool(re.search(HAUSHALTSGESETZ, titel, flags=re.IGNORECASE)) else Vorgangstyp.GG_LAND_PARL,
             initiatoren=initiatoren,
             stationen=stationen,
             ids=_get_ids(vorgang=vorgang),
