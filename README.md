@@ -66,6 +66,8 @@ There are a some settings, which activate certain features.
 | `LLM_TOKEN` | `PAZUFA_LLM_TOKEN` | `None` | Activates generation of summaries using LLM. |
 | `LLM_MODEL` | `PAZUFA_LLM_MODEL` | `openrouter/openai/gpt-5-nano` | Required if `LLM_TOKEN` is set. Choose which model to use from [openrouter.ai](https://openrouter.ai/models?input_modalities=text). |
 | `LLM_TIMEOUT` | `PAZUFA_LLM_TIMEOUT` | `300` | Required if `LLM_TOKEN` is set. Timeout for LLM API calls in seconds. |
+| `DEBUG` | `PAZUFA_DEBUG` | `False` | Activates debug mode. Saves the payload of every built Vorgang as JSON to `.debug/<start of run>/<Vorgang id>.json`, e.g. to inspect or compare end-to-end test runs. |
+| `DEBUG_INCLUDE_VOLLTEXT` | `PAZUFA_DEBUG_INCLUDE_VOLLTEXT` | `False` | Only relevant if `DEBUG` is set. Keep the (large) `volltext` of the Dokumente in the JSON files. |
 | `MATTERMOST_TOKEN` | `PAZUFA_MATTERMOST_TOKEN` | `None` | Activates notifications to Mattermost. |
 | `MATTERMOST_URL` | `PAZUFA_MATTERMOST_URL` | `https://chat.pazufa.de/hooks` | Required if `MATTERMOST_TOKEN` is set. Mattermost webhook URL. |
 

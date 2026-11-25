@@ -12,13 +12,14 @@ commonly used. You can find more settings consulting the documentation:
 import os
 import uuid
 
-from pazufa_scraper_be.constants import CACHE_DIR_PATH
+from pazufa_scraper_be.constants import CACHE_DIR_PATH, DEBUG_DIR_PATH
 from pazufa_scraper_be.extensions.mattermost import MattermostNotifier
 from pazufa_scraper_be.extensions.temp_error_dir import TempErrorDirectory
 from pazufa_scraper_be.pipelines import (
     BuildPaZuFaVorgang,
     CreateShortTitel,
     DownloadAndCacheDocuments,
+    DumpVorgang,
     ExtractTextFromPDF,
     FixAndAddUrls,
     ReportAndDropErrors,
@@ -38,12 +39,16 @@ LLM_TOKEN = os.environ.get("PAZUFA_LLM_TOKEN")
 LLM_MODEL = os.environ.get("PAZUFA_LLM_MODEL", "openrouter/mistralai/mistral-small-2603")
 LLM_TIMEOUT = os.environ.get("PAZUFA_LLM_TIMEOUT", None) or 5 * 60
 
+# Debug mode: e.g. saves the payload of every built Vorgang as JSON into <DEBUG_DIR>/<start of run>/<Vorgang id>.json (for inspecting/comparing runs)
+DEBUG = os.environ.get("PAZUFA_DEBUG", "").lower() in ("1", "true")
+DEBUG_INCLUDE_VOLLTEXT = os.environ.get("PAZUFA_DEBUG_INCLUDE_VOLLTEXT", "").lower() in ("1", "true")
+
 MATTERMOST_URL = os.environ.get("PAZUFA_MATTERMOST_URL", "https://chat.pazufa.de/hooks")
 MATTERMOST_TOKEN = os.environ.get("PAZUFA_MATTERMOST_TOKEN")
 
-# Custom Settings
 SCRAPER_UUID = uuid.UUID("05dc56fc-24e1-442b-9f97-91d596d50471")
 CACHE_DIR = CACHE_DIR_PATH
+DEBUG_DIR = DEBUG_DIR_PATH
 
 # Scrapy Settings
 BOT_NAME = "PaZuFa_Berlin_Scraper"
@@ -77,7 +82,8 @@ ITEM_PIPELINES = {
     ExtractTextFromPDF: 120,
     SummarizeExtractedPDFText: 130,
     CreateShortTitel: 140,
-    BuildPaZuFaVorgang: 999,
+    BuildPaZuFaVorgang: 998,
+    DumpVorgang: 999,
     SubmitVorgang: 1000,
 }
 

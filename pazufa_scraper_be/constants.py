@@ -1,6 +1,7 @@
 from pathlib import Path
 
 CACHE_DIR_PATH = Path(".cache")
+DEBUG_DIR_PATH = Path(".debug")
 DOK_CACHE_SUB_DIR_PATH = Path("dokument")
 DOK_CACHE_HISTORY_SUB_DIR_PATH = Path(".history")
 
@@ -18,3 +19,9 @@ ZUSTIMMUNG = "Zustimmung"
 ABGELEHNT = "Abgelehnt"
 ZURUECKGEZOGEN = "Zurückgezogen"
 HAUSHALTSGESETZ = "Haushaltsgesetz"
+
+ABSTRACT_TYPO_CORRECTIONS = {
+    "Ausschusses für Ausschusses für": "Ausschuss für",
+    "für für": "für",
+    "Umwelt und Klimaschutz": "Umwelt- und Klimaschutz",
+}

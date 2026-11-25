@@ -9,7 +9,7 @@ from pazufa_corelib.api_client.models import Doktyp, Gremium, Parlament, Station
 from pazufa_corelib.api_client.models import Dokument as PaZuFaDokument
 from pazufa_corelib.api_client.types import UNSET, Unset
 
-from pazufa_scraper_be.constants import ABGELEHNT, ANGENOMMEN, ZURUECKGEZOGEN, ZUSTIMMUNG
+from pazufa_scraper_be.constants import ABGELEHNT, ABSTRACT_TYPO_CORRECTIONS, ANGENOMMEN, ZURUECKGEZOGEN, ZUSTIMMUNG
 from pazufa_scraper_be.pardok import APrDokument, BaseGesetzDokument, DrsDokument, GesetzVorgang, GVBlDokument, PlPrDokument
 from pazufa_scraper_be.pardok.dokument import DeskTitelSbMixin
 
@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+_BESCHLUSSEMPFEHLUNG_AUSSCHUSS_PATTERN = re.compile(r"^\s*Beschlussempfehlung des (?P<name>.+?) vom\b", flags=re.IGNORECASE)
+_GENITIV_AUSSCHUSS_PATTERN = re.compile(r"(ausschuss)es\b", flags=re.IGNORECASE)
 
 
 @dataclass
@@ -38,6 +41,38 @@ def uniqify(sequence: Sequence) -> list:
     seen = set()
     seen_add = seen.add
     return [x for x in sequence if not (x in seen or seen_add(x))]  # ty: ignore[redundant-condition] NOTE: this is fine because we want to call that function inline
+
+
+def get_ausschuss_from_beschlussempfehlung_abstract(abstract: str | None) -> str | None:
+    """Extract the Ausschuss named in the Abstract of a Beschlussempfehlung.
+
+    PARDOK sometimes lists the Hauptausschuss as Urheber although the Beschlussempfehlung is the one of a Fachausschuss, e.g. the Abstract
+    'Beschlussempfehlung des Ausschusses für Kultur, Engagement und Demokratieförderung vom 31. August 2026'. The genitive is turned into the
+    nominative, so the name matches the Urheber of the Ausschussprotokolle.
+
+    Known typos in the Abstract are corrected first, see ``ABSTRACT_TYPO_CORRECTIONS``.
+
+    Args:
+        abstract: Abstract of the Beschlussempfehlung Drucksache.
+
+    Returns:
+        Name of the Ausschuss or None if the Abstract does not name one.
+    """
+    if abstract is None:
+        return None
+
+    for typo, correction in ABSTRACT_TYPO_CORRECTIONS.items():
+        abstract = abstract.replace(typo, correction)
+
+    match = _BESCHLUSSEMPFEHLUNG_AUSSCHUSS_PATTERN.match(abstract)
+    if match is None:
+        return None
+
+    name = _GENITIV_AUSSCHUSS_PATTERN.sub(r"\1", match["name"]).strip()
+    if "ausschuss" not in name.lower():
+        return None
+
+    return name
 
 
 def get_document_schlagworte(dokument: BaseGesetzDokument) -> list[str] | Unset:
@@ -114,7 +149,11 @@ def get_station_zeitpunkte(dok_container: DokumentContainer) -> tuple[datetime, 
     if isinstance(dok_container.pardok, GVBlDokument):
         zp_start = dok_container.pardok.vk_dat
 
-    if zp_start > zp_modifiziert:
+    if isinstance(zp_start, Unset):
+        msg = f"[{dok_container.pardok.vorgang.id} - {dok_container.pardok.id}]: Could not determine zp_start for station."
+        raise TypeError(msg)
+
+    if isinstance(zp_modifiziert, Unset) or zp_start > zp_modifiziert:
         zp_modifiziert = UNSET
 
     return zp_start, zp_modifiziert
